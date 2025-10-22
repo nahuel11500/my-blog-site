@@ -8,7 +8,6 @@ import svelte from '@astrojs/svelte';
 
 // https://astro.build/config
 export default defineConfig({
-    site: 'https://nahuel11500.github.io',
-    base: '/my-blog-site',
+    site: 'https://nahuelcanavy.com',
     integrations: [mdx(), sitemap(), svelte()],
 });
