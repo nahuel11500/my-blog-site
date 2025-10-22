@@ -1,0 +1,154 @@
+---
+title: 'Linux Cgroups & Namespaces: Powering Containers'
+description: 'A deep dive into Linux cgroups and namespaces, the key technologies enabling containerization'
+pubDate: 'Oct 19 2025'
+heroImage: '../../assets/blog-placeholder-3.jpg'
+---
+import Quiz from '../../components/Quiz.svelte';
+import Table from '../../components/Table.svelte';
+
+Containers are a lightweight form of virtualization that allow applications to run in isolated environments on the same host. Unlike full virtual machines, containers share the host OS kernel but provide separation of resources and environment.
+
+Two key Linux kernel features make this possible:
+
+- **Namespaces** – isolate what a process can see
+- **Cgroups (Control Groups)** – limit what a process can use
+
+Together, they enable containerized applications that are secure, efficient, and portable.
+
+## Linux Namespaces: Isolating Environments
+
+A namespace creates a private view of system resources for a group of processes. Namespaces make it appear as if a container has its own independent system.
+
+### Key Namespace Types
+
+<Table
+  client:load
+  columns={['Namespace', 'Resource Isolated', 'Description']}
+  rows={[
+    ['PID', 'Process IDs', 'Each container sees its own PID tree'],
+    ['NET', 'Network', 'Isolates network interfaces and IPs'],
+    ['MNT', 'Mount points', 'Provides separate filesystem views'],
+    ['UTS', 'Hostname / Domain', 'Containers can have custom hostnames'],
+    ['IPC', 'Inter-process Communication', 'Isolates System V IPC and message queues'],
+    ['USER', 'User & Group IDs', 'Allows unprivileged containers to map root'],
+    ['CGROUP', 'Control Groups', 'Isolates resource accounting']
+  ]}
+/>
+
+Namespaces work together to provide a fully isolated container environment. For instance, combining PID, NET, MNT, and UTS namespaces allows a process to think it has its own independent OS.
+
+## Linux Control Groups (Cgroups): Limiting Resources
+
+Cgroups control and limit the resources (CPU, memory, I/O) available to processes or containers. They prevent one container from consuming all system resources.
+
+### Cgroup Controllers
+
+<Table
+  client:load
+  columns={['Controller', 'Resource Controlled']}
+  rows={[
+    ['cpu', 'CPU time'],
+    ['memory', 'RAM usage'],
+    ['blkio', 'Disk I/O'],
+    ['pids', 'Number of processes'],
+    ['net_cls', 'Network bandwidth']
+  ]}
+/>
+
+### Creating a Simple Cgroup
+
+```bash
+# Create a cgroup for CPU
+$ sudo cgcreate -g cpu:/mygroup
+
+# Limit CPU usage to 50%
+$ echo 50000 | sudo tee /sys/fs/cgroup/cpu/mygroup/cpu.cfs_quota_us
+
+# Add a process to the cgroup
+$ echo <PID> | sudo tee /sys/fs/cgroup/cpu/mygroup/cgroup.procs
+```
+
+
+Cgroups can also be nested, creating hierarchical limits for complex workloads.
+
+## How Namespaces and Cgroups Work Together
+
+Namespaces isolate processes, while cgroups control resources. Together, they provide the foundation for container engines like Docker or Podman.
+
+```
++----------------+
+|   Host Kernel  |
++----------------+
+| Cgroups        | Limits CPU/memory/io
+| Namespaces     | Isolates PID/FS/NET
++----------------+
+| Container A    |
+| Container B    |
++----------------+
+```
+
+This combination allows:
+
+- Multiple containers to run securely on the same host
+- Resource guarantees for each container
+- Portability without needing full virtual machines
+
+### Practical Example: Running an Isolated Process
+
+```bash
+# Run a new bash shell in isolated PID, NET, and MNT namespaces
+$ unshare -p -n -m --fork /bin/bash
+
+# Verify PID isolation
+$ ps aux
+# PID 1 inside container is your bash process
+```
+
+## Real-World Use Cases
+
+- **Docker Containers** – Leverage namespaces and cgroups automatically
+- **Kubernetes Pods** – Each pod has isolated resources and network
+- **Testing & Sandboxing** – Run experiments without affecting host
+- **CI/CD Pipelines** – Isolated build environments for reproducibility
+
+## Conclusion
+
+Linux namespaces and cgroups are the invisible engines powering modern containerization. Namespaces provide isolation, cgroups provide resource control, and together they allow applications to run in secure, lightweight, and portable environments.
+
+## Quiz: Test Your Knowledge
+
+<Quiz
+  client:load
+  question="What does a PID namespace do?"
+  options={["Limits number of processes", "Provides a separate process ID tree", "Isolates network interfaces", "Controls memory usage"]}
+  answer="Provides a separate process ID tree"
+/>
+
+<Quiz
+  client:load
+  question="Which cgroup controller limits RAM usage?"
+  options={["cpu", "memory", "blkio", "pids"]}
+  answer="memory"
+/>
+
+<Quiz
+  client:load
+  question="Which Linux feature isolates network interfaces for containers?"
+  options={["Cgroups", "NET namespace", "UTS namespace", "PID namespace"]}
+  answer="NET namespace"
+/>
+
+<Quiz
+  client:load
+  question="What is the primary purpose of cgroups?"
+  options={["Isolation", "Resource limiting", "File system separation", "Process creation"]}
+  answer="Resource limiting"
+/>
+
+<Quiz
+  client:load
+  question="What two features together enable containerization?"
+  options={["Namespaces and cgroups", "Virtual machines and KVM", "Docker and Kubernetes", "fork() and exec()"]}
+  answer="Namespaces and cgroups"
+/>
