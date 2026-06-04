@@ -1,0 +1,189 @@
+---
+title: 'Deploying Internal Agents on Kubernetes: Lessons Learned'
+description: 'Lessons from deploying internal agentic systems on Kubernetes, including architecture, security, and adoption trade-offs.'
+pubDate: 'Jun 04 2026'
+---
+
+Agentic systems represent a major shift compared to traditional LLM-based applications. They fundamentally change how we think about automation and interaction with AI.
+
+At Wiremind, we've started deploying agents internally on our Kubernetes clusters. We're still in the early stages, but several teams are already using them for internal workflows. At this point, none of these agents are customer-facing; they are exclusively focused on improving internal operations.
+
+## Overall Architecture
+
+To deploy agents, we chose to build a generic abstraction layer through an internally developed Python SDK.
+
+The idea is straightforward: we abstract common tools (MCP servers, connectors, etc.) behind a unified interface. In theory, this allows us to swap the underlying agent runtime ("harness") as needed—whether that's Codex, Claude Code, OpenCode, or something else—and select models through configuration rather than code changes.
+
+On the deployment side, the architecture remains fairly conventional:
+
+- A standard Kubernetes deployment
+- An orchestrator layer
+- Multiple worker processes
+
+The orchestrator listens to various event sources that trigger agent actions. Today, Slack is the primary entry point, but the same approach could easily be extended to GitLab webhooks or other event-driven systems.
+
+Using our open-source framework Remoulade, the orchestrator pushes a message into RabbitMQ containing all the information required by the agent.
+
+A worker then consumes the message.
+
+👉 The worker is where the actual agent runs.
+
+The agent executes its tasks according to its instructions and available tools.
+
+Having a dedicated orchestrator also allows us to run specialized workers with:
+
+- Custom system prompts
+- Domain-specific skills and toolsets
+- Multiple workers operating in parallel
+
+## Why Deploy Agents Inside the Cluster?
+
+A natural question is: why not simply run these agents locally?
+
+In fact, current subscription pricing models strongly incentivize local usage over API-based deployments. The economics are difficult to ignore.
+
+We experimented with asynchronous coding workflows where agents would generate code and open merge requests automatically. However, the experience never matched what developers can achieve from a local IDE. Additionally, the review overhead introduced by these asynchronous merge requests significantly reduced the expected productivity gains.
+
+In practice, opening ten merge requests directly from your IDE is often far more efficient than having an external agent generate them. Combined with the higher cost of API-based execution, this approach was quickly abandoned.
+
+This led us to a more important question:
+
+Which workflows should be automated within the cluster, and which should remain local?
+
+So far, our most successful use cases have been:
+
+### Internal Platform Support Agent
+
+An internal support agent with access to:
+
+- Kubernetes workloads
+- Metrics
+- Notion documentation
+- Cluster state
+
+This has proven extremely powerful, with benefits that are immediately visible to users.
+
+### Scheduled Operational Agents
+
+Agents launched periodically through Kubernetes CronJobs that perform tasks such as:
+
+- Scanning logs for anomalies and errors
+- Producing operational reports
+- Identifying recurring issues
+
+These workflows are asynchronous by nature and do not require direct human interaction, making them ideal candidates for cluster-based agents.
+
+## Security
+
+Security is naturally one of the main concerns.
+
+Since these agents are strictly internal, we assume trusted users within our threat model. For example, prompt injection attacks remain possible.
+
+Instead, our focus is on limiting what the agent itself can do.
+
+Each agent runs inside its own Kubernetes pod, and access is controlled through standard RBAC policies.
+
+Permissions are intentionally restricted:
+
+- Read-only access wherever possible
+- Access limited to specific namespaces and resources
+- Explicit denial of access to Kubernetes Secrets
+
+When external systems must be accessed, the agent only receives credentials through dedicated Kubernetes Secrets that themselves provide read-only access (PostgreSQL, Redis, external APIs, etc.).
+
+👉 The result is a good balance between operational usefulness and security.
+
+## Access to the Environment
+
+Because our workloads already run on Kubernetes, hosting agents inside the same environment dramatically simplifies access to operational data.
+
+Agents can directly access:
+
+- Pod logs
+- Kibana logs
+- Thanos and Prometheus metrics
+
+All within the same private network.
+
+👉 No need for complex external integrations or network exposure. Everything is already available where the agent runs.
+
+## Context Is the Real Superpower
+
+This is probably the most interesting aspect of the entire setup.
+
+Because the agent is connected to:
+
+- Source code
+- Infrastructure
+- Logs
+- Documentation
+
+it can reason about real operational situations and provide meaningful assistance.
+
+A simple example:
+
+We have a support ticket because a CI/CD pipeline failed: the agent investigates the logs and infrastructure state → identifies the root cause: a node is down and the runner is blocked → answer the ticket. We, as a platform team, then only have to fix the node.
+
+This level of contextual understanding is difficult to achieve when agents operate outside the environment they are meant to support.
+
+## Limitations and Surprises
+
+Of course, not everything is magical.
+
+### Debugging Is Harder
+
+Running agents remotely instead of locally introduces new challenges:
+
+- Less immediate visibility
+- Harder to inspect behavior in real time
+- More complex debugging workflows
+
+Understanding exactly why an agent made a decision can sometimes require significantly more effort than debugging a local process.
+
+### The Automation Trap
+
+One particularly interesting lesson came from an experiment where I connected an agent directly to our alerting channel.
+
+The goal was ambitious: automatically open merge requests to fix detected issues.
+
+On paper, it sounded great.
+
+In practice:
+
+- Alert noise was not sufficiently controlled
+- The agent generated dozens of merge requests
+- Nobody could realistically keep up with the review process
+
+👉 The lesson was simple: if the input system is noisy, agents will not solve the problem—they will amplify it.
+
+## Adoption and Real-World Usage
+
+Ultimately, the effectiveness of a platform is measured by adoption.
+
+And in that regard, demand is clearly growing internally.
+
+Teams want to:
+
+- Create their own agents
+- Customize them
+- Build agentic workflows
+
+Some teams have already embraced these tools and are seeing tangible productivity improvements.
+
+Personally, being able to:
+
+- Ask questions about my cluster
+- Interact with code and documentation
+- Automatically generate merge requests
+
+has become genuinely useful in day-to-day work.
+
+## Conclusion
+
+We're still at the beginning of this journey at Wiremind, but some teams are already significantly more advanced than others, and the productivity differences are becoming increasingly visible.
+
+Perhaps most importantly, these tools are not only useful for software engineers.
+
+At the end of the day, an agent is "just" another tool but one that unlocks an enormous range of possibilities.
+
+In this context, the role of a Platform team is to make these agents easy to build, easy to use, secure by default, and scalable enough to support the growing demand across the organization.
