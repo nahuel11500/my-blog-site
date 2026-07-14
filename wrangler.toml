@@ -1,0 +1,26 @@
+name = "blog"
+main = "worker/index.ts"
+compatibility_date = "2026-07-01"
+preview_urls = false
+
+[observability]
+enabled = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# Negative patterns win, so the Worker runs only for page routes. Everything
+# listed here is served straight from the edge without invoking it.
+run_worker_first = [
+  "/*",
+  "!/_astro/*",
+  "!/fonts/*",
+  "!/og/*",
+  "!/favicon.svg",
+  "!/*.xml",
+]
+
+# Free plan: 100k data points/day, 3-month retention.
+[[analytics_engine_datasets]]
+binding = "PAGEVIEWS"
+dataset = "blog_pageviews"

@@ -4,6 +4,9 @@ const today = new Date();
 
 <footer>
 	&copy; {today.getFullYear()} Nahuel Canavy. All rights reserved.
+	<p class="meta">
+		No cookies, no trackers, no JavaScript. <a href="/privacy/">How this site counts visits</a>.
+	</p>
 	<div class="social-links">
 			<a href="https://linkedin.com/in/nahuel-canavy-159109234" target="_blank">
 				<span class="sr-only">Go to Nahuel's Linkedin profile</span>
@@ -31,6 +34,13 @@ const today = new Date();
 		background: linear-gradient(var(--gray-gradient)) no-repeat;
 		color: rgb(var(--gray));
 		text-align: center;
+	}
+	.meta {
+		margin: 0.75em 0 0 0;
+		font-size: 0.8em;
+	}
+	.meta a {
+		color: inherit;
 	}
 	.social-links {
 		display: flex;
