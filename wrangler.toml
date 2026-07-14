@@ -17,6 +17,7 @@ run_worker_first = [
   "!/fonts/*",
   "!/og/*",
   "!/favicon.svg",
+  "!/robots.txt",
   "!/*.xml",
 ]
 
