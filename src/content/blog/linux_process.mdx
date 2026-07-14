@@ -2,11 +2,7 @@
 title: 'Linux Processes: A Complete Guide'
 description: 'A comprehensive deep-dive into Linux processes, their lifecycle, management, and practical commands'
 pubDate: 'Oct 16 2024'
-heroImage: '../../assets/Linux_proc.png'
 ---
-import Quiz from '../../components/Quiz.svelte';
-
-
 
 # What is a Process in Linux?
 
@@ -440,76 +436,3 @@ $ cat /proc/PID/limits | grep "Max open files"
 $ ulimit -n 2048
 ```
 
----
-
-## Quiz: Test Your Linux Process Knowledge
-
-<Quiz
-  client:load
-  question="What is the PID of the init process in Linux?"
-  options={["0", "1", "2", "It varies"]}
-  answer="1"
-/>
-
-<Quiz
-  client:load
-  question="Which command shows processes in a tree format?"
-  options={["ps aux", "ps -ef --forest", "top", "Both ps -ef --forest and pstree"]}
-  answer="Both ps -ef --forest and pstree"
-/>
-
-<Quiz
-  client:load
-  question="What does the 'Z' state indicate in process status?"
-  options={["Zero priority process", "Zombie process", "Zoned process", "Sleeping process"]}
-  answer="Zombie process"
-/>
-
-<Quiz
-  client:load
-  question="Which signal cannot be caught or ignored by a process?"
-  options={["SIGTERM", "SIGINT", "SIGKILL", "SIGUSR1"]}
-  answer="SIGKILL"
-/>
-
-<Quiz
-  client:load
-  question="What happens to child processes when their parent dies?"
-  options={["They automatically terminate", "They become zombie processes", "They are adopted by init (PID 1)", "They become orphan processes that continue running"]}
-  answer="They are adopted by init (PID 1)"
-/>
-
-<Quiz
-  client:load
-  question="Which nice value gives the highest priority?"
-  options={["0", "19", "-20", "20"]}
-  answer="-20"
-/>
-
-<Quiz
-  client:load
-  question="What does the /proc/PID/fd/ directory contain?"
-  options={["Process file descriptors", "Process configuration files", "Process temporary files", "Process backup files"]}
-  answer="Process file descriptors"
-/>
-
-<Quiz
-  client:load
-  question="Which command can be used to change the priority of a running process?"
-  options={["nice", "renice", "priority", "setpri"]}
-  answer="renice"
-/>
-
-<Quiz
-  client:load
-  question="What is a process group?"
-  options={["A collection of related processes that can be managed together", "A group of processes with the same priority", "A group of processes from the same user", "A group of processes using the same memory"]}
-  answer="A collection of related processes that can be managed together"
-/>
-
-<Quiz
-  client:load
-  question="Which system call is used to create a new process?"
-  options={["exec()", "fork()", "create()", "spawn()"]}
-  answer="fork()"
-/>

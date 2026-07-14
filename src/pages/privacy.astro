@@ -1,0 +1,51 @@
+---
+import Layout from '../layouts/BlogPost.astro';
+---
+
+<Layout
+	title="Privacy"
+	description="What this blog measures, what it deliberately doesn't, and how you can check."
+	pubDate={new Date('July 14 2026')}
+>
+	<p>
+		This site has no cookies, no trackers, no analytics script, and no JavaScript at all. Nothing
+		is loaded from a third party, so nobody else sees that you were here.
+	</p>
+
+	<p>
+		I do count page views, because I like knowing which posts are worth writing. But the counting
+		happens on the server as it hands you the page — not in your browser. There is nothing to
+		download, nothing to opt out of, and nothing to consent to.
+	</p>
+
+	<h2>What gets recorded</h2>
+	<ul>
+		<li>The path you visited, e.g. <code>/blog/linux_process/</code></li>
+		<li>The <em>host</em> that linked you here, e.g. <code>news.ycombinator.com</code></li>
+		<li>A country code, e.g. <code>FR</code></li>
+		<li>The time</li>
+	</ul>
+
+	<h2>What does not get recorded</h2>
+	<ul>
+		<li>Your IP address</li>
+		<li>Any cookie, visitor ID or fingerprint</li>
+		<li>Your user agent</li>
+		<li>The full referring URL — only its host, so search terms never reach me</li>
+		<li>Anything linking one page view to another, or one visit to the next</li>
+	</ul>
+
+	<p>
+		There is no way for me to tell two readers apart, or to tell that you came back. That is
+		deliberate: I get to see which posts land, and you stay anonymous.
+	</p>
+
+	<h2>Don't take my word for it</h2>
+	<p>
+		The blog is open source, and the ~40 lines that do the counting are the whole story:
+		<a href="https://github.com/nahuel11500/my-blog-site/blob/main/worker/index.ts">
+			worker/index.ts
+		</a>.
+		You can also just open the network tab — there is nothing there.
+	</p>
+</Layout>

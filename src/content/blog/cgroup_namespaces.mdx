@@ -2,10 +2,8 @@
 title: 'Linux Cgroups & Namespaces: Powering Containers'
 description: 'A deep dive into Linux cgroups and namespaces, the key technologies enabling containerization'
 pubDate: 'Oct 19 2025'
-heroImage: '../../assets/containers_cgroups_namespaces.png'
 ---
-import Quiz from '../../components/Quiz.svelte';
-import Table from '../../components/Table.svelte';
+import Table from '../../components/Table.astro';
 
 Containers are a lightweight form of virtualization that allow applications to run in isolated environments on the same host. Unlike full virtual machines, containers share the host OS kernel but provide separation of resources and environment.
 
@@ -23,7 +21,6 @@ A namespace creates a private view of system resources for a group of processes.
 ### Key Namespace Types
 
 <Table
-  client:load
   columns={['Namespace', 'Resource Isolated', 'Description']}
   rows={[
     ['PID', 'Process IDs', 'Each container sees its own PID tree'],
@@ -45,7 +42,6 @@ Cgroups control and limit the resources (CPU, memory, I/O) available to processe
 ### Cgroup Controllers
 
 <Table
-  client:load
   columns={['Controller', 'Resource Controlled']}
   rows={[
     ['cpu', 'CPU time'],
@@ -115,40 +111,3 @@ $ ps aux
 ## Conclusion
 
 Linux namespaces and cgroups are the invisible engines powering modern containerization. Namespaces provide isolation, cgroups provide resource control, and together they allow applications to run in secure, lightweight, and portable environments.
-
-## Quiz: Test Your Knowledge
-
-<Quiz
-  client:load
-  question="What does a PID namespace do?"
-  options={["Limits number of processes", "Provides a separate process ID tree", "Isolates network interfaces", "Controls memory usage"]}
-  answer="Provides a separate process ID tree"
-/>
-
-<Quiz
-  client:load
-  question="Which cgroup controller limits RAM usage?"
-  options={["cpu", "memory", "blkio", "pids"]}
-  answer="memory"
-/>
-
-<Quiz
-  client:load
-  question="Which Linux feature isolates network interfaces for containers?"
-  options={["Cgroups", "NET namespace", "UTS namespace", "PID namespace"]}
-  answer="NET namespace"
-/>
-
-<Quiz
-  client:load
-  question="What is the primary purpose of cgroups?"
-  options={["Isolation", "Resource limiting", "File system separation", "Process creation"]}
-  answer="Resource limiting"
-/>
-
-<Quiz
-  client:load
-  question="What two features together enable containerization?"
-  options={["Namespaces and cgroups", "Virtual machines and KVM", "Docker and Kubernetes", "fork() and exec()"]}
-  answer="Namespaces and cgroups"
-/>

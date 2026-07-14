@@ -1,21 +1,27 @@
 {
-  "name": "",
+  "name": "blog",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "wrangler dev",
+    "test": "node --test --disable-warning=ExperimentalWarning 'worker/*.test.ts'",
+    "deploy": "astro build && wrangler deploy",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.7",
     "@astrojs/rss": "^4.0.12",
     "@astrojs/sitemap": "^3.6.0",
-    "@astrojs/svelte": "^7.2.0",
     "astro": "^5.14.5",
-    "sharp": "^0.34.3",
-    "svelte": "^5.40.1",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260714.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.1.1",
+    "satori": "^0.26.0",
+    "wrangler": "^4.110.0"
   }
 }
