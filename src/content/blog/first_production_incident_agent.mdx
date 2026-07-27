@@ -1,0 +1,49 @@
+---
+title: 'Our first big production incident caused by an agent'
+description: 'How an unreviewed agent MR, combined with over-permissioned CI, took down our production Kubernetes cluster for 6 hours — and what we learned about IAM, least privilege, and the new reality of AI-assisted development.'
+pubDate: 'Jul 27 2026'
+---
+
+So it finally happened: our first big production incident caused by an agent.
+
+Friday, 17h11, Paris time. Our external uptime.com probes start firing on all of our next-gen Kubernetes cluster (we internally call them the V3 cluster): every monitoring check is failing. Weird. Is uptime.com having an issue? Nothing on our own alerting. What is happening?
+
+Five minutes later, the team posts that we lost our V3 clusters, including a production one. No more V3 virtual machines on our cloud provider. Everything is gone, including the services that are doing our alertings, thus explaining the lack of internal alertings.
+
+Alright, time to get our hands dirty and run a disaster recovery. A meeting is started, an incident.io channel is opened, roles are distributed. I'll be the one coordinating and writing down what's going on.
+
+I'll spare you the details, but it took us 6 hours to get our main production back online. Please practice your DRP, we didn't yet on thoses V3 cluster and we saw the result of it.
+
+So what happened?
+
+## A build job that deleted production
+
+The culprit is our CI OS image builder job. It is supposed to do something very boring: provision a VM to get a build environment, build the image, then delete that VM once the job is done. Create one, destroy one.
+
+That day it destroyed every VM of the V3 environment instead. Including the production ones.
+
+## The agent part
+
+Now, why did that job run at all? Because we asked an agent for a change on the CI. A change that, looking back, we scoped badly.
+
+It did the change. Badly. Then it opened a merge request, as usual. And that should have been the end of it: nothing was merged, nothing was reviewed, nothing was supposed to happen. Except the change it made to the CI was broken in a way that made the pipeline run, from the branch, with way to much rights.
+
+So an unmerged MR, opened by an agent nobody had approved yet, deleted a production environment.
+
+## The part that is actually our fault
+
+It is tempting to stop the postmortem here and blame the agent. But the agent only did what we allowed it to do.
+
+The `image-builder` service account had Compute Operator permissions across our critical environments, production included. Nothing isolated the build environment from the live one. Nothing limited the blast radius of a job whose entire purpose is to create and destroy VMs. That access was granted for convenience at setup time, and it was never revisited.
+
+And behind that, the real root cause: we have no standardized IAM guardrails, no automated auditing of what our automation can touch, and no real enforcement of least privilege when we onboard a new tool into the CI.
+
+As a colleague put it, and I think it should be written on a wall somewhere: **CI should never have any rights.**
+
+## What I take away from this
+
+Since we deployed local development agents, I keep seeing the same pattern. An environment that is wrongly configured at the security and permission level is going to cause an issue sooner or later, even with a benevolent agent. Whereas a properly configured agent is a breeze to use and improves the quality of what comes out.
+
+Let's be real: security and permissions are often the first things to go out the window. Done wrong, they just slow you down, and setting up something great is really hard and takes time.
+
+But this used to be forgiving, and it is not anymore. Now, more than ever, since writing code is not the bottleneck now, taking the initial time to get a proper environment configured, permissions correctly scoped and assess your architecture is worth it. You'll thank yourself later.
