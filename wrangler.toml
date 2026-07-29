@@ -1,7 +1,7 @@
 name = "blog"
 main = "worker/index.ts"
 compatibility_date = "2026-07-01"
-preview_urls = false
+preview_urls = true
 
 [observability]
 enabled = true
