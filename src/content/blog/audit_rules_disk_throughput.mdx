@@ -1,0 +1,137 @@
+---
+title: 'It was not the hardware: how 37 audit rules ate 80% of my disk throughput'
+description: 'Older bare-metal nodes looked 4–5× slower for databases, and the hardware got the blame. The real culprit was a set of Linux audit rules that had drifted onto the servers, quietly taxing every system call.'
+pubDate: 'Oct 16 2026'
+---
+import Table from '../../components/Table.astro';
+
+It started with a night batch that failed.
+
+A staging PostgreSQL cluster had a switchover: its primary moved from one of our recent bare-metal nodes to an older one. That night, the batch job running against it ran out of CPU and failed. I benchmarked the two machines: the older one read from disk 2.5 to 4 times slower, and ran Postgres transactions about 5 times slower.
+
+The explanation seemed obvious. The older nodes have an older CPU generation (Zen 4 instead of Zen 5) and PCIe Gen4 SSDs instead of Gen5. Older hardware, slower machine. I wrote that down as the conclusion and moved on.
+
+Then I asked a simple question: can the public specs of that hardware confirm it?
+
+## The disks were barely working
+
+The SSDs in those older nodes are datacenter NVMe drives rated at around **1 million random-read IOPS each**. The arrays have between 2 and 6 of them, in RAID 10.
+
+I was getting about **250k IOPS**. With 6 disks. And with 2 disks. Always the same ceiling.
+
+If the disks were the limit, a 6-disk array would go roughly 3 times faster than a 2-disk one. It didn't. Something above the disks was capping everything at the same number, and it was using about 4% of what the hardware could do.
+
+Even stranger: one of the older nodes, call it **node B**, reached 850k IOPS on exactly the same hardware as **node A**, which was stuck at 226k. Same board, same BIOS, same SSD model and firmware, same kernel arguments.
+
+So, not the hardware.
+
+## Following the requests down the stack
+
+The storage stack is the usual one: ext4 on LVM, on dm-crypt (LUKS), on md RAID 10, on NVMe. The node exporter gives per-device read counts and read times for every layer, so you can compute the average latency at each one.
+
+On both nodes, every layer answered in about **85 µs**, which matches the drive spec. The disks were fast. The RAID was fast. The encryption added nothing visible.
+
+What differed was how many requests were in flight. fio was asking for 256 at a time (8 jobs, queue depth 32). On node A, only about **20** were actually reaching the block layer. On node B, about 76.
+
+That's Little's law: throughput = requests in flight / latency. Same latency and 4× fewer requests in flight gives 4× less throughput. The requests weren't waiting on the disk. They hadn't even reached it yet.
+
+The CPU data said the same thing. Each I/O cost the fio process **20 to 28 µs of CPU** on the older nodes, against **3.5 µs** on the newer ones. A CPU generation explains maybe 25% of that, not 6 to 8 times. And fio wasn't throttled. It was simply burning time inside the kernel without blocking.
+
+## What perf saw
+
+Once you know the CPU is the problem, `perf` tells you where it goes. On node A, during a read-only fio run, the top kernel functions were:
+
+- `audit_filter_rules`
+- `audit_exe_compare`
+- `get_mm_exe_file`
+- `get_file_rcu`
+- `audit_comparator`
+
+None of them showed up on node B.
+
+That is the Linux **audit subsystem**. When audit rules are loaded, the kernel checks them at the exit of system calls. Node A had 43 of them loaded, most looking like this:
+
+```
+-a always,exit -F arch=b64 -S execve -F euid=0 -F key=rootcmds    # log commands run as root
+-a never,exit  -F arch=b64 -S all -F exe=/opt/bin/runc             # ...but not runc
+-a never,exit  -F arch=b64 -S all -F exe=/opt/cni/bin/calico       # ...nor Calico
+# 37 rules of this shape: containerd, CNI plugins, iptables, mount, lvm
+```
+
+The intent was reasonable: log every command run as root, and skip the noisy container and network tooling. The cost was not:
+
+- `-S all` means the rule applies to **every system call**, so the kernel walks the list each time any process on the node finishes a syscall.
+- `-F exe=` means the kernel looks up the calling process's executable file to compare paths. That takes a reference on the file (`get_mm_exe_file`).
+- All threads of one process share that same file. So a multi-threaded or forking program (fio, Postgres, ClickHouse, a JVM) has all its threads hammering the same reference count, on every syscall. They contend with each other. CPU burns, nothing blocks.
+
+Every disk read is one or more system calls. Hence the 20 µs per I/O. Hence the ceiling that doesn't care how many disks you have.
+
+The irony is that these were `never` rules, written to *reduce* noise. A `never` rule still has to be checked to decide it doesn't match.
+
+## A case of config drift
+
+Where did they come from? Not from SELinux, even though they came out of the same hardening work: SELinux was in permissive mode and loads no rules of its own. These were plain kernel audit rules.
+
+Git told part of the story. The "log every root command" rules started as a draft in the provisioning config in early 2025, commented out, with a note that runc still caused false positives. A few months later, the draft was removed from the repository.
+
+The servers told the rest. On the older nodes, the rules file still held the full, active version of that draft. Nodes installed later got the empty file from the provisioning config and were fine. The repository and the servers had simply drifted apart, and nothing was comparing them.
+
+And node B, the fast "identical" node? It had the same file. The service that loads the rules had **failed at its last boot**, so nothing was loaded. Its speed was an accident, and its next reboot would probably have made it slow too.
+
+In the end, 15 of the 43 bare-metal nodes were running the rules, including 7 in the production pool.
+
+## The fix, and the numbers
+
+The fix is boring: empty the rules file and reload the audit rules. No reboot, no drain, about ten seconds per node.
+
+I first did it on a staging node, **node C**, with a read-only fio benchmark before and after:
+
+<Table
+  columns={['Test (4k random reads)', 'With the rules', 'Without', 'Gain']}
+  rows={[
+    ['Raw RAID, 8 jobs × QD32', '217k IOPS', '1.09M IOPS', '×5.0'],
+    ['Through dm-crypt, same load', '222k IOPS', '941k IOPS', '×4.2'],
+    ['Single thread, QD1 latency', '63 µs', '58 µs', '−8%'],
+  ]}
+/>
+
+Single-request latency barely moves: when only one request runs at a time, the disk dominates. The rules cost **throughput under concurrency**, which is exactly what databases do.
+
+Then I rolled it out to every node and compared the night before with the night after:
+
+<Table
+  columns={['15 h average, cleaned nodes', 'Before', 'After', 'Change']}
+  rows={[
+    ['Kernel CPU', '132 CPUs', '76 CPUs', '−56 CPUs (−43%)'],
+    ['Application CPU', '569 CPUs', '584 CPUs', '+2.6% (same work)'],
+    ['Postgres kernel CPU', '13.1 CPUs', '5.5 CPUs', '−58%'],
+  ]}
+/>
+
+Nodes that never had the rules stayed flat over the same night. So that's 56 CPUs of pure overhead gone, for the same amount of work. The older nodes are still somewhat slower than the newer ones: that part really is hardware. But the 4–5× gap I was ready to accept as "old hardware" was mostly self-inflicted.
+
+## How I worked on this with Claude
+
+I did this investigation with Claude, Anthropic's coding agent, running in my terminal with read-only access to our metrics, logs and Kubernetes clusters. I think how it went is worth describing.
+
+**It challenged the conclusion I came in with.** My first question was "can we confirm the slowness comes from the hardware?". Instead of confirming, it pulled the vendor specs of each SSD model, compared them with my measurements, and pointed out that a ceiling identical on 2 and 6 disks can't be the disks. That one table killed the hypothesis I had already written down.
+
+**It did the tedious correlation work fast.** It went down the stack layer by layer from Prometheus metrics, worked out the in-flight requests with Little's law, compared CPU per I/O across a dozen nodes, and diffed BIOS, firmware, kernel and CPU-governor metrics between node A and node B. Each of those is ten minutes of PromQL for me. It chained them in a few minutes and let each result narrow the next query.
+
+**It dropped wrong leads quickly.** Along the way it suspected the IOMMU mode, the AES driver, CPU-bug mitigations and a crypto bottleneck. Each time it proposed the read-only check that would tell, and dropped the lead when the data said no. Not every hypothesis was right, but none survived longer than one command.
+
+**It connected things I wouldn't have found as quickly.** Seeing `audit_exe_compare` in a perf profile and going straight to "there are `exe=` audit rules on every syscall", then to `git log -S` in the provisioning repo to find the original draft and its removal: that is the part that would have taken me much longer on my own.
+
+**The guardrails held, and that was a good thing.** The agent had read-only access. When it came to launching debug pods, running fio on production nodes or removing audit rules, the permission layer blocked it, and it handed me the exact command to run with an explanation of the impact and the rollback. Given [what happened last time](/blog/first_production_incident_agent/), I liked that a lot: it did the thinking and the scripting, I pressed the buttons on production.
+
+From "can you confirm it's the hardware?" to root cause took an afternoon. The fleet cleanup and the before/after numbers came the next morning. My first round of benchmarks, done the classic way over two days, had produced the wrong conclusion.
+
+## What I take away from this
+
+**Check the obvious explanation against the specs.** "Older hardware" sounded so right that I wrote it down without comparing against what the hardware is rated for. A ceiling that doesn't scale with the number of disks is never the disks.
+
+**Measure per layer before blaming a component.** Latency at each layer plus requests in flight tells you where the time goes. Here it said: not the disks, not the RAID, not the encryption. The problem is above them.
+
+**A rule that says "do nothing" still costs the check.** Exclusion lists that run on every syscall are not free, especially with `exe=` matching on multi-threaded programs.
+
+**Config drift is invisible until it costs you.** The file wasn't in any repository, so nothing showed it in a diff or a review. The only trace was a performance gap that already had a ready explanation. If it lives on a server, it should live in a repo, and something should make sure the two agree.
