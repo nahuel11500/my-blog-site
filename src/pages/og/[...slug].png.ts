@@ -26,6 +26,13 @@ export async function getStaticPaths() {
 			params: { slug: 'default' },
 			props: { title: SITE_TITLE, description: SITE_DESCRIPTION },
 		},
+		{
+			params: { slug: 'projects/recouvrance' },
+			props: {
+				title: 'Recouvrance: a Kubernetes client for you and your agents',
+				description: 'Native, in Rust, with a local MCP server so AI agents work on your clusters under rules you set.',
+			},
+		},
 		...posts.map((post) => ({
 			params: { slug: post.id },
 			props: { title: post.data.title, description: post.data.description },
