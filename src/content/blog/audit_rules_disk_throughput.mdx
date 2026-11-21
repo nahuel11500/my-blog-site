@@ -7,18 +7,23 @@ import Table from '../../components/Table.astro';
 
 It started with a night batch that failed.
 
-A staging Postgres primary switched over from one of our recent bare-metal nodes to an older one. That night, the batch job ran out of CPU. I benchmarked both machines: the older one read from disk 2.5–4× slower and ran transactions ~5× slower.
+We run two generations of bare-metal Kubernetes nodes:
 
-Older CPU (Zen 4 vs Zen 5), older SSDs (PCIe Gen4 vs Gen5). Older hardware, slower machine. I wrote that down as the conclusion.
+- **newer nodes**: AMD Zen 5, PCIe Gen5 NVMe SSDs
+- **older nodes**: AMD Zen 4, PCIe Gen4 NVMe SSDs
+
+A staging Postgres primary switched over from a newer node to an older one. That night, the batch job ran out of CPU. I benchmarked both: the older node read from disk 2.5–4× slower and ran transactions ~5× slower.
+
+Older hardware, slower machine. I wrote that down as the conclusion.
 
 Then I checked the spec sheets.
 
 ## The disks were barely working
 
-Each SSD is rated at ~1M random-read IOPS. The arrays have 2 to 6 of them, in RAID 10. I got ~250k, whatever the number of disks:
+Each older node has 2 to 6 SSDs in RAID 10, each rated at ~1M random-read IOPS. Running fio on the older nodes, I got ~250k, whatever the number of disks:
 
 ```text
-4k random reads (1 █ ≈ 250k IOPS)
+older nodes, 4k random reads (1 █ ≈ 250k IOPS)
 
 2 disks   rated  ████████                  ~2M
           got    █                         250k
@@ -29,7 +34,7 @@ Each SSD is rated at ~1M random-read IOPS. The arrays have 2 to 6 of them, in RA
 
 If the disks were the limit, 6 disks would go ~3× faster than 2. Something above them capped everything at the same number.
 
-Weirder: **node B** hit 850k IOPS on exactly the same hardware as **node A** (226k). Same board, BIOS, SSD model, firmware and kernel arguments.
+Weirder: two older nodes with identical hardware (same board, BIOS, SSD model, firmware and kernel arguments) didn't agree. **Node A** was stuck at 226k IOPS. **Node B** hit 850k.
 
 Not the hardware.
 
