@@ -1,7 +1,7 @@
 ---
 title: 'It was not the hardware: how 37 audit rules ate 80% of my disk throughput'
 description: 'Older bare-metal nodes looked 4–5× slower for databases, and the hardware got the blame. The real culprit was a set of Linux audit rules that had drifted onto the servers, quietly taxing every system call.'
-pubDate: 'Oct 16 2026'
+pubDate: 'Nov 21 2026'
 ---
 import Table from '../../components/Table.astro';
 
@@ -43,7 +43,7 @@ Not the hardware.
 My fio run had 8 parallel jobs, each keeping 32 reads in flight (queue depth 32): 256 requests on their way to the disks at any time. The node exporter gives read counts and read times for every layer of the stack, so you get the average latency at each one:
 
 ```text
-fio asks for 256 requests in flight (8 jobs × QD32)
+fio: 256 requests in flight
                      │
      ┌───────────────▼───────────────┐
      │ syscall (kernel, on CPU)      │ ◄─ where are the
@@ -118,16 +118,16 @@ The irony: these are `never` rules, meant to *reduce* noise. runc matches its ru
 
 ## A case of config drift
 
-Not SELinux (permissive, loads no rules of its own). Plain kernel audit rules, and the repo and the servers had drifted apart:
+The rules came out of the same hardening work as SELinux, but SELinux was permissive and loads no rules of its own. These were plain kernel audit rules, applied by hand on the older nodes from a draft in our provisioning repo:
 
 ```text
               repo              older nodes     newer nodes
-early 2025    draft, disabled   rules ACTIVE
+early 2025    draft, disabled   applied by hand
 months later  draft removed     still ACTIVE    empty file
                                 → slow          → fine
 ```
 
-Nothing compared the two. And node B, the fast "identical" node? Same active file, but the service loading the rules had **failed at its last boot**. Fast by accident, until its next reboot.
+The draft left the repo, not the servers, and nothing compared the two. And node B, the fast "identical" node? Same active file, but the service loading the rules had **failed at its last boot**. Fast by accident, until its next reboot.
 
 Total: 15 of our 43 bare-metal nodes, 7 of them in production.
 
@@ -180,6 +180,6 @@ Question to root cause: one afternoon. Fleet cleanup and numbers: the next morni
 - **Check the obvious explanation against the specs.** A ceiling that doesn't scale with the disks is never the disks.
 - **Measure per layer before blaming a component.** Latency plus requests in flight shows where the time goes.
 - **A `never` rule still costs the check.** Per-syscall `exe=` rules hurt multi-threaded and forking programs most. Go run `auditctl -l` on your database hosts.
-- **Config drift is invisible until it costs you.** The active rules only lived on the servers. If it's on a server, it belongs in a repo, with something checking that the two agree.
+- **Config drift is invisible until it costs you.** The active rules only lived on the servers. If it's on a server, it belongs in a repo, with something checking that the two agree. We manage almost everything as code now; this file was a leftover from before.
 
 Next time a machine is "just old", check the spec sheet. It might be worth 56 CPUs.
