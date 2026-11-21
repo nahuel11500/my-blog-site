@@ -11,13 +11,17 @@ interface Props {
 	sizes?: string;
 	/** The height of the 1600 px wide image: 981 for the whole window, 1000 for a crop of the page. */
 	height?: number;
+	/** For an animation: a still image, shown on reduced motion and by the Pause button. */
+	still?: string;
 }
 
-const { name, alt, eager = false, sizes = '(max-width: 900px) 100vw, 680px', height = 981 } = Astro.props;
+const { name, alt, eager = false, sizes = '(max-width: 900px) 100vw, 680px', height = 981, still } = Astro.props;
 ---
 
-<figure class="window">
+<figure class="window" data-still={still && `${MEDIA}/${still}.webp`}>
 	<a href={`${MEDIA}/${name}.webp`}>
+		<picture>
+		{still && <source media="(prefers-reduced-motion: reduce)" srcset={`${MEDIA}/${still}.webp`} />}
 		<img
 			src={`${MEDIA}/${name}-800.webp`}
 			srcset={`${MEDIA}/${name}-800.webp 800w, ${MEDIA}/${name}.webp 1600w`}
@@ -29,5 +33,6 @@ const { name, alt, eager = false, sizes = '(max-width: 900px) 100vw, 680px', hei
 			decoding="async"
 			alt={alt}
 		/>
+		</picture>
 	</a>
 </figure>

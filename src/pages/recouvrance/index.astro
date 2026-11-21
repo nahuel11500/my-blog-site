@@ -1,5 +1,5 @@
 ---
-import Shot from '../../components/recouvrance/Shot.astro';
+import Tabs from '../../components/recouvrance/Tabs.astro';
 import Layout from '../../layouts/Recouvrance.astro';
 import { latestReleases } from '../../lib/releases';
 import { BASE, GITHUB, INSTALL, MEDIA, REPO, TOOLS, doc } from '../../lib/recouvrance';
@@ -17,16 +17,21 @@ const pillars = [
 	{ title: 'Agents, on your rules', text: 'A local MCP server with allow, ask and deny, approvals and an audit log.' },
 ];
 
-const agentShots = [
-	{ img: 'approval', title: 'Rules and approvals', text: 'Allow, ask or deny, like RBAC. Ask me waits for your click.', alt: "An agent's request waiting for approval above its rules", height: 981 },
-	{ img: 'activity', title: 'Audit log', text: 'Every call, grouped by task, with the rule that decided it.', alt: "An agent's calls grouped by task", height: 1000 },
-	{ img: 'assistant', title: 'Built-in assistant', text: 'Investigate from any broken pod, through your Claude Code.', alt: 'The assistant explaining why a pod crash-loops', height: 1000 },
+const agents = [
+	{ label: 'Approvals', img: 'approval-flow', still: 'approval-flow-still', alt: "An agent asks to restart a deployment; the request waits in the window, is approved, and shows in the activity log", caption: 'An agent asks, the exact request waits in the window, you approve, it is logged. <em>Ask me</em> rules sit next to Allow and Deny, like RBAC.' },
+	{ label: 'Audit log', img: 'activity', height: 1000, alt: "An agent's calls grouped by task", caption: 'Every call, grouped by task, with the rule that decided it. Also on disk.' },
+	{ label: 'Assistant', img: 'assistant', height: 1000, alt: 'The assistant finding why a pod crash-loops', caption: 'From any broken pod: the assistant reads the cluster under the same rules and finds the cause.' },
+];
+
+const why = [
+	{ label: 'Problems', img: 'problems', height: 1000, alt: 'The Problems page listing broken workloads', caption: 'Crash loops, pending pods, failed jobs, across every cluster you have open.' },
+	{ label: 'Diagnosis', img: 'diagnosis', height: 1000, alt: 'A crash-looping pod with its diagnosis and last output', caption: 'The crash output, the exit code and the reason, on the pod’s page.' },
 ];
 
 const everyday = [
-	{ img: 'logs', title: 'Logs across pods', alt: 'Logs of every pod of a deployment, merged, with levels and a histogram', height: 1000 },
-	{ img: 'command-palette', title: 'Ctrl+K to anything', alt: 'The command palette finding objects and pages', height: 1000 },
-	{ img: 'pods-dark', title: 'Light and dark', alt: 'The pods table in the dark theme', height: 981 },
+	{ label: 'Logs', img: 'logs', height: 1000, alt: 'Logs of every pod of a deployment, merged, with levels and a histogram', caption: 'Every pod of a workload, merged in time order.' },
+	{ label: 'Ctrl+K', img: 'command-palette', height: 1000, alt: 'The command palette finding objects and pages', caption: 'Any object, page or context, across clusters.' },
+	{ label: 'Dark theme', img: 'pods-dark', alt: 'The pods table in the dark theme', caption: 'Follows your desktop.' },
 ];
 
 const more = ['Several clusters at once', 'Helm', 'Argo CD and Flux', 'Rollbacks with diffs', 'Shell, attach, files', 'Port-forwards', 'RBAC and who-can', 'Usage history', 'Reachability', 'Upgrade check', 'Timeline', 'CRDs'];
@@ -62,7 +67,7 @@ const faq = [
 			<p class="meta">Linux and macOS · Free and open source · No telemetry</p>
 		</div>
 		<div class="rv-wrap">
-			<figure class="window">
+			<figure class="window" data-still={`${MEDIA}/tour-poster.webp`}>
 				<picture>
 					<source media="(prefers-reduced-motion: reduce)" srcset={`${MEDIA}/tour-poster.webp`} />
 					<img
@@ -97,11 +102,22 @@ const faq = [
 				with. Tables are paged on the server, so huge clusters stay light.
 			</p>
 			<dl>
-				<div><dt>174 MB</dt><dd>with 23,958 pods listed</dd></div>
+				<div><dt>0.7 s</dt><dd>to list 20,242 pods</dd></div>
+				<div><dt>8 ms</dt><dd>to draw a frame of that table</dd></div>
+				<div><dt>174 MB</dt><dd>with 23,958 pods, on a production cluster</dd></div>
 				<div><dt>0</dt><dd>browsers inside</dd></div>
-				<div><dt>0</dt><dd>lines of <code>unsafe</code> Rust</dd></div>
-				<div><dt>0</dt><dd>telemetry calls</dd></div>
 			</dl>
+			<figure class="window recording" data-still={`${MEDIA}/speed-still.webp`}>
+				<picture>
+					<source media="(prefers-reduced-motion: reduce)" srcset={`${MEDIA}/speed-still.webp`} />
+					<img src={`${MEDIA}/speed.webp`} width="1600" height="1000" loading="lazy" alt="Scrolling, filtering and searching a table of 20,242 pods" />
+				</picture>
+			</figure>
+			<p class="note">
+				Release build on a laptop. 20,242 pods on 100 nodes simulated with <a href="https://kwok.sigs.k8s.io/">kwok</a> on a
+				local kind cluster; frames taken from the app as it scrolls, filters and searches, timed off screen. The memory
+				figure is from a real production cluster.
+			</p>
 		</div>
 	</section>
 
@@ -109,50 +125,20 @@ const faq = [
 		<p class="kicker">Built for agents</p>
 		<h2 class="section-title">Your agents work on your clusters. You keep the rules.</h2>
 		<p class="section-lede">Connect Claude Code in one click, or any MCP client. {TOOLS} tools, every call checked.</p>
-		<div class="trio">
-			{
-				agentShots.map((s) => (
-					<article>
-						<Shot name={s.img} alt={s.alt} height={s.height} sizes="(max-width: 900px) 100vw, 380px" />
-						<h3>{s.title}</h3>
-						<p>{s.text}</p>
-					</article>
-				))
-			}
-		</div>
+		<Tabs name="agents" items={agents} />
 		<p class="more-link"><a href={`${BASE}/agents/`}>How agents work →</a></p>
 	</section>
 
 	<section class="section rv-wrap">
 		<p class="kicker">Knows what is wrong</p>
 		<h2 class="section-title">What is broken, and why.</h2>
-		<div class="duo">
-			<article>
-				<Shot name="problems" alt="The Problems page listing broken workloads" height={1000} sizes="(max-width: 900px) 100vw, 570px" />
-				<h3>Problems</h3>
-				<p>Crash loops, pending pods, failed jobs, across every cluster you have open.</p>
-			</article>
-			<article>
-				<Shot name="diagnosis" alt="A crash-looping pod with its diagnosis and last output" height={1000} sizes="(max-width: 900px) 100vw, 570px" />
-				<h3>Diagnosis</h3>
-				<p>The crash output, the exit code, the reason. On the pod's page.</p>
-			</article>
-		</div>
+		<Tabs name="why" items={why} />
 	</section>
 
 	<section class="section rv-wrap">
 		<p class="kicker">Everything else</p>
 		<h2 class="section-title">Everything you reach for, one click away.</h2>
-		<div class="trio">
-			{
-				everyday.map((s) => (
-					<article>
-						<Shot name={s.img} alt={s.alt} height={s.height} sizes="(max-width: 900px) 100vw, 380px" />
-						<h3>{s.title}</h3>
-					</article>
-				))
-			}
-		</div>
+		<Tabs name="daily" items={everyday} />
 		<ul class="chips">
 			{more.map((m) => <li>{m}</li>)}
 		</ul>
@@ -311,33 +297,20 @@ const faq = [
 		color: rgba(241, 230, 207, 0.7);
 		font-size: 0.9em;
 	}
+	.speed .recording {
+		margin-top: 2.5em;
+	}
+	.speed .note {
+		max-width: 46em;
+		margin: 0.9em 0 0;
+		color: rgba(241, 230, 207, 0.6);
+		font-size: 0.82em;
+	}
 	.speed code {
 		background: rgba(255, 255, 255, 0.12);
 		color: var(--cream);
 	}
 
-	.trio,
-	.duo {
-		display: grid;
-		gap: 1.6em;
-	}
-	.trio {
-		grid-template-columns: repeat(3, 1fr);
-	}
-	.duo {
-		grid-template-columns: 1fr 1fr;
-	}
-	.trio h3,
-	.duo h3 {
-		margin: 0.9em 0 0.15em;
-		font-size: 1.1em;
-	}
-	.trio p,
-	.duo p {
-		margin: 0;
-		color: var(--muted);
-		font-size: 0.92em;
-	}
 	.more-link {
 		margin: 1.5em 0 0;
 	}
@@ -354,7 +327,7 @@ const faq = [
 		padding: 0.25em 0.85em;
 		border: 1px solid var(--line);
 		border-radius: 999px;
-		background: #fff;
+		background: var(--card);
 		color: var(--ink);
 		font-size: 0.88em;
 	}
@@ -395,9 +368,7 @@ const faq = [
 	}
 
 	@media (max-width: 900px) {
-		.pillars,
-		.trio,
-		.duo {
+		.pillars {
 			grid-template-columns: 1fr;
 		}
 		.speed dl {
