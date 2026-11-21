@@ -1,5 +1,5 @@
 ---
-import Shot from '../../components/recouvrance/Shot.astro';
+import Tabs from '../../components/recouvrance/Tabs.astro';
 import Layout from '../../layouts/Recouvrance.astro';
 import { BASE, TOOLS, doc } from '../../lib/recouvrance';
 
@@ -35,6 +35,12 @@ const tools = [
 		group: 'Know the cluster and your access',
 		items: ['my_permissions', 'can_i', 'list_contexts', 'list_resource_types', 'explain_resource', 'cluster_version'],
 	},
+];
+
+const showcase = [
+	{ label: 'Approvals', img: 'approval-flow', still: 'approval-flow-still', alt: "An agent asks to restart a deployment; the request waits in the window, is approved, and shows in the activity log", caption: 'The exact request waits in the window. Approve once, for an hour, or always for that narrow case.' },
+	{ label: 'Audit log', img: 'activity', height: 1000, alt: "An agent's calls grouped by task", caption: 'Every call, grouped by task, with the rule that decided it. Also in <code>audit.jsonl</code>.' },
+	{ label: 'Assistant', img: 'assistant', height: 1000, alt: 'The assistant finding why a pod crash-loops', caption: 'The built-in assistant, through your Claude Code login or an API key, under the same rules.' },
 ];
 
 const rulesYaml = `agents:
@@ -89,34 +95,10 @@ const guarantees = [
 		}
 	</section>
 
-	<section class="section rv-wrap split">
-		<div>
-			<p class="kicker">Approvals</p>
-			<h2 class="section-title">See the exact request before it runs</h2>
-			<p class="muted">Approve once, for an hour, or always for that narrow case.</p>
-		</div>
-		<Shot name="approval" alt="An agent's request waiting for approval in the Recouvrance window" />
-	</section>
-
-	<section class="section rv-wrap split flip">
-		<Shot name="activity" alt="The Activity page grouping an agent's calls by task" height={1000} />
-		<div>
-			<p class="kicker">Activity</p>
-			<h2 class="section-title">Every call, grouped by task</h2>
-			<p class="muted">What it touched, which rule decided, how long it took. Also on disk, in <code>audit.jsonl</code>.</p>
-		</div>
-	</section>
-
-	<section class="section rv-wrap split">
-		<div>
-			<p class="kicker">Assistant</p>
-			<h2 class="section-title">Ask why, from any broken pod</h2>
-			<p class="muted">
-				The built-in assistant reads your cluster under the same rules, through your Claude Code login or an
-				Anthropic API key, and answers on the spot.
-			</p>
-		</div>
-		<Shot name="assistant" alt="The assistant explaining why a pod crash-loops and how to fix it" height={1000} />
+	<section class="section rv-wrap">
+		<p class="kicker">See it work</p>
+		<h2 class="section-title">From request to audit log</h2>
+		<Tabs name="flow" items={showcase} />
 	</section>
 
 	<section class="section rv-wrap">
@@ -230,7 +212,7 @@ const guarantees = [
 		padding: 1.4em 1.4em 1.2em;
 		border: 1px solid var(--line);
 		border-radius: 12px;
-		background: #fff;
+		background: var(--card);
 		box-shadow: 0 12px 30px -18px rgba(12, 21, 41, 0.35);
 	}
 	.n {
@@ -313,7 +295,7 @@ const guarantees = [
 		padding: 1.3em 1.4em;
 		border: 1px solid var(--line);
 		border-radius: 12px;
-		background: #fff;
+		background: var(--card);
 	}
 	.tools h3 {
 		margin-bottom: 0.7em;

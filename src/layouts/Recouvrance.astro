@@ -68,13 +68,10 @@ const links = [
 						<img src={`${MEDIA}/logo.svg`} alt="" width="30" height="30" />
 						<span>Recouvrance</span>
 					</a>
-					<p>
-						A native Kubernetes desktop client, with a local MCP server for your agents. Open source,
-						MIT or Apache-2.0.
-					</p>
+					<p>A native Kubernetes desktop client, with a local MCP server for your agents. Open source, MIT or Apache-2.0, and it stays that way.</p>
 				</div>
 				<div>
-					<h2>Product</h2>
+					<h2>Recouvrance</h2>
 					<a href={`${BASE}/#features`}>Features</a>
 					<a href={`${BASE}/agents/`}>Agents and MCP</a>
 					<a href={`${BASE}/compare/`}>Compare</a>
@@ -96,9 +93,44 @@ const links = [
 				</div>
 			</div>
 			<div class="rv-wrap bottom">
-				<span>No cookies, no trackers, no JavaScript on this site. <a href="/privacy/">Privacy</a>.</span>
+				<span>No cookies, no trackers. A few lines of JavaScript, for the copy and pause buttons. <a href="/privacy/">Privacy</a>.</span>
 			</div>
 		</footer>
+		<script is:inline>
+			// Optional: without JavaScript the command is still selected in one click, and the tour
+			// shows a still image to readers who ask for reduced motion.
+			document.documentElement.classList.add('js');
+			for (const pre of document.querySelectorAll('.install')) {
+				const button = Object.assign(document.createElement('button'), { type: 'button', className: 'copy', textContent: 'Copy' });
+				button.addEventListener('click', async () => {
+					try {
+						await navigator.clipboard.writeText(pre.querySelector('code').textContent.trim());
+						button.textContent = 'Copied';
+					} catch {
+						button.textContent = 'Press Ctrl+C';
+					}
+					setTimeout(() => (button.textContent = 'Copy'), 1600);
+				});
+				pre.append(button);
+			}
+			for (const figure of document.querySelectorAll('[data-still]')) {
+				const img = figure.querySelector('img');
+				const moving = { src: img.getAttribute('src'), srcset: img.getAttribute('srcset') };
+				const button = Object.assign(document.createElement('button'), { type: 'button', className: 'pause', textContent: 'Pause' });
+				button.addEventListener('click', () => {
+					const play = button.textContent === 'Play';
+					if (play) {
+						if (moving.srcset) img.setAttribute('srcset', moving.srcset);
+						img.src = moving.src;
+					} else {
+						img.removeAttribute('srcset');
+						img.src = figure.dataset.still;
+					}
+					button.textContent = play ? 'Pause' : 'Play';
+				});
+				figure.append(button);
+			}
+		</script>
 	</body>
 </html>
 
@@ -115,6 +147,8 @@ const links = [
 		--ink: #1b2436;
 		--muted: #5b6478;
 		--line: #e6e0d4;
+		--card: #fff;
+		--code-bg: rgba(20, 33, 61, 0.07);
 		--allow: #1f7a4d;
 		--ask: #a86a12;
 		--deny: #c0392b;
@@ -123,6 +157,21 @@ const links = [
 		color: var(--ink);
 		font-size: 18px;
 		line-height: 1.6;
+	}
+	/* The site follows the reader's light or dark setting, like the app. */
+	@media (prefers-color-scheme: dark) {
+		.rv-site {
+			--paper: #0e1524;
+			--ink: #ece5d6;
+			--muted: #a3abbd;
+			--line: #26314a;
+			--card: #151f35;
+			--code-bg: rgba(255, 255, 255, 0.08);
+			color-scheme: dark;
+		}
+		.rv-site a {
+			color: #8fb0e6;
+		}
 	}
 	.rv-site .rv {
 		width: auto;
@@ -141,7 +190,8 @@ const links = [
 	.rv-site code {
 		padding: 0.1em 0.35em;
 		border-radius: 4px;
-		background: rgba(20, 33, 61, 0.07);
+		background: var(--code-bg);
+		color: inherit;
 		font-family: var(--mono);
 		font-size: 0.86em;
 	}
@@ -182,7 +232,7 @@ const links = [
 		top: 1em;
 		z-index: 10;
 		padding: 0.4em 0.8em;
-		background: #fff;
+		background: var(--card);
 	}
 
 	/* Buttons */
@@ -213,7 +263,7 @@ const links = [
 	}
 	.rv-site .button.light {
 		border-color: var(--line);
-		background: #fff;
+		background: var(--card);
 		color: var(--ink);
 	}
 	.rv-site .button.light:hover {
@@ -245,6 +295,44 @@ const links = [
 		user-select: all;
 		-webkit-user-select: all;
 		cursor: text;
+	}
+	.rv-site .install .copy {
+		position: absolute;
+		top: 50%;
+		right: 0.6em;
+		transform: translateY(-50%);
+		padding: 0.3em 0.8em;
+		border: 0;
+		border-radius: 6px;
+		background: var(--brass);
+		color: var(--navy-deep);
+		font: 700 0.95em/1.4 Atkinson, sans-serif;
+		cursor: pointer;
+	}
+	.rv-site .install .copy:hover {
+		background: var(--brass-light);
+	}
+	.js .rv-site .install {
+		padding-right: 7em;
+	}
+	.js .rv-site .install::after {
+		display: none;
+	}
+	.rv-site [data-still] {
+		position: relative;
+	}
+	.rv-site .pause {
+		position: absolute;
+		right: 0.8em;
+		bottom: 0.8em;
+		padding: 0.3em 0.9em;
+		border: 1px solid rgba(241, 230, 207, 0.4);
+		border-radius: 999px;
+		background: rgba(12, 21, 41, 0.75);
+		color: var(--cream);
+		font: 700 0.8em/1.4 Atkinson, sans-serif;
+		cursor: pointer;
+		line-height: 1.4;
 	}
 	.rv-site .install::after {
 		content: 'click to select';
