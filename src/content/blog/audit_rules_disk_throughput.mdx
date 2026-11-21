@@ -20,7 +20,7 @@ Then I checked the spec sheets.
 
 ## The disks were barely working
 
-Each older node has 2 to 6 SSDs in RAID 10, each rated at ~1M random-read IOPS. Running fio on the older nodes, I got ~250k, whatever the number of disks:
+Each older node has 2 to 6 SSDs in RAID 10, each rated at ~1M random-read IOPS. I measured with [fio](https://github.com/axboe/fio), the standard Linux disk benchmark: it fires reads at the disks from several parallel jobs and counts how many complete per second. On the older nodes, I got ~250k, whatever the number of disks:
 
 ```text
 older nodes, 4k random reads (1 █ ≈ 250k IOPS)
@@ -40,7 +40,7 @@ Not the hardware.
 
 ## Following the requests down the stack
 
-The node exporter gives read counts and read times for every layer of the stack, so you get the average latency at each one:
+My fio run had 8 parallel jobs, each keeping 32 reads in flight (queue depth 32): 256 requests on their way to the disks at any time. The node exporter gives read counts and read times for every layer of the stack, so you get the average latency at each one:
 
 ```text
 fio asks for 256 requests in flight (8 jobs × QD32)
