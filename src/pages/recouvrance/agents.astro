@@ -8,26 +8,10 @@ const description =
 	'Recouvrance serves MCP on localhost so Claude Code and other agents work on your clusters under rules you set: allow, ask or deny, with approvals, an audit log and a kill switch.';
 
 const steps = [
-	{
-		n: '1',
-		title: 'Connect',
-		text: 'In <strong>Agents</strong>, click <strong>Connect Claude Code</strong>: it registers the server in your Claude Code. Any other MCP client gets its own token and rules.',
-	},
-	{
-		n: '2',
-		title: 'Set the rules',
-		text: 'Start from a preset, then allow, ask or deny by verb, resource, namespace, context and name. Rules can expire, and <em>Test access</em> shows which rule decides.',
-	},
-	{
-		n: '3',
-		title: 'Approve, or not',
-		text: 'A call an <em>Ask me</em> rule covers waits in the window with its key arguments: the command, the whole patch, the replicas. <em>Always allow this</em> adds a narrow rule.',
-	},
-	{
-		n: '4',
-		title: 'See what happened',
-		text: 'The Activity page groups calls by task and shows what each touched. Every call is in an audit log on disk, and a kill switch cuts every agent off at once.',
-	},
+	{ n: '1', title: 'Connect', text: 'One click for Claude Code. Any MCP client gets its own token.' },
+	{ n: '2', title: 'Set rules', text: 'Allow, ask or deny by verb, resource, namespace and context.' },
+	{ n: '3', title: 'Approve', text: 'Ask me rules wait in the window with the exact request.' },
+	{ n: '4', title: 'Audit', text: 'Every call is logged. One switch cuts every agent off.' },
 ];
 
 const tools = [
@@ -77,13 +61,11 @@ const mcpJson = `{
 }`;
 
 const guarantees = [
-	'Anything no rule matches is denied. Deny wins, then Ask me, then Allow.',
-	'Contexts no rule names are never contacted, nor listed to the agent.',
-	'Secret values are masked unless a rule allows <code>reveal</code>.',
-	'Rules changed while a call waits apply to it: it is checked again once approved.',
-	'Names are validated, and what the API server returns must be the object asked for.',
-	'A per-agent rate limit, and requests nobody answers within 2 minutes are refused.',
-];
+	'Anything no rule matches is denied.',
+	'Deny wins, then Ask me, then Allow.',
+	'Secret values stay masked unless you allow <code>reveal</code>.',
+	'Contexts no rule names are never contacted.',
+]
 ---
 
 <Layout title={title} description={description} active="agents" ogImage="/og/recouvrance/agents.png">
@@ -91,11 +73,7 @@ const guarantees = [
 		<div class="rv-wrap">
 			<p class="kicker">Agents and MCP</p>
 			<h1>Let agents work on your clusters. <em>Keep the rules.</em></h1>
-			<p class="lede">
-				While it runs, Recouvrance serves MCP on localhost. Claude Code and any MCP client get {TOOLS} tools
-				for Kubernetes and Helm, each call checked against rules you set, waiting for you when you ask it to,
-				and written to an audit log.
-			</p>
+			<p class="lede">A local MCP server: {TOOLS} tools for Kubernetes and Helm, every call checked against your rules.</p>
 		</div>
 	</section>
 
@@ -114,12 +92,8 @@ const guarantees = [
 	<section class="section rv-wrap split">
 		<div>
 			<p class="kicker">Approvals</p>
-			<h2 class="section-title">You see the exact request before it runs</h2>
-			<p class="muted">
-				The banner shows the tool, the object and its key arguments. For <code>apply_manifest</code> it lists every
-				object and the YAML that will be applied, Secret values masked. Approve once, for an hour, or always for
-				that narrow case.
-			</p>
+			<h2 class="section-title">See the exact request before it runs</h2>
+			<p class="muted">Approve once, for an hour, or always for that narrow case.</p>
 		</div>
 		<Shot name="approval" alt="An agent's request waiting for approval in the Recouvrance window" />
 	</section>
@@ -129,21 +103,26 @@ const guarantees = [
 		<div>
 			<p class="kicker">Activity</p>
 			<h2 class="section-title">Every call, grouped by task</h2>
+			<p class="muted">What it touched, which rule decided, how long it took. Also on disk, in <code>audit.jsonl</code>.</p>
+		</div>
+	</section>
+
+	<section class="section rv-wrap split">
+		<div>
+			<p class="kicker">Assistant</p>
+			<h2 class="section-title">Ask why, from any broken pod</h2>
 			<p class="muted">
-				One agent session per group, with what it touched: contexts, namespaces, objects. Filter by writes,
-				denied or failed calls, and open any line to its full arguments and result. The same log is kept in
-				<code>~/.local/share/recouvrance/audit.jsonl</code>.
+				The built-in assistant reads your cluster under the same rules, through your Claude Code login or an
+				Anthropic API key, and answers on the spot.
 			</p>
 		</div>
+		<Shot name="assistant" alt="The assistant explaining why a pod crash-loops and how to fix it" height={1000} />
 	</section>
 
 	<section class="section rv-wrap">
 		<p class="kicker">Rules</p>
 		<h2 class="section-title">Rules that read like RBAC, with an effect</h2>
-		<p class="section-lede">
-			Edit them in the window, or keep them as code in <code>~/.config/recouvrance/rules.yaml</code>, in the spirit of
-			Claude Code's allow, ask and deny lists.
-		</p>
+		<p class="section-lede">In the window, or as code in <code>~/.config/recouvrance/rules.yaml</code>.</p>
 		<div class="code-pair">
 			<figure>
 				<figcaption>rules.yaml</figcaption>
@@ -158,11 +137,7 @@ const guarantees = [
 	<section class="section rv-wrap">
 		<p class="kicker">{TOOLS} tools</p>
 		<h2 class="section-title">What you would do with kubectl and Helm</h2>
-		<p class="section-lede">
-			Every change supports a dry run, except exec, drain, GitOps actions and port-forwards. Four prompts chain them
-			into read-only workflows: <code>troubleshoot</code>, <code>rightsize</code>, <code>cert-audit</code> and
-			<code>cluster-health</code>.
-		</p>
+		<p class="section-lede">Changes support a dry run. Prompts: <code>troubleshoot</code>, <code>rightsize</code>, <code>cert-audit</code>, <code>cluster-health</code>.</p>
 		<div class="tools">
 			{
 				tools.map((t) => (
@@ -187,13 +162,8 @@ const guarantees = [
 			<p class="kicker">Any MCP client</p>
 			<h2 class="section-title">Not only Claude</h2>
 			<p class="muted">
-				Claude Code connects in one click. Other clients get their own agent, token and rules from
-				<em>Agents → Several agents…</em>, and point at the local server. <code>recouvrance serve</code> runs it without
-				the window; there nobody can approve, so calls that would ask are refused.
-			</p>
-			<p class="muted">
-				The in-app assistant is an agent too: it uses your Claude Code login, or an Anthropic API key, under the same
-				rules, approvals and log.
+				Any MCP client gets its own token and rules from <em>Agents → Several agents…</em>.
+				<code>recouvrance serve</code> runs the server without the window.
 			</p>
 		</div>
 		<figure class="code">
@@ -205,16 +175,12 @@ const guarantees = [
 	<section class="section rv-wrap">
 		<aside class="story">
 			<p class="kicker">Why this exists</p>
-			<p>
-				An agent's unreviewed change, merged through over-permissioned CI, took our production cluster down for six
-				hours. Agents are useful on clusters; they need rules a human sets, and a human in the loop for what matters.
-			</p>
+			<p>An agent's unreviewed change took our production cluster down for six hours. Agents need rules, and a human in the loop.</p>
 			<p><a href="/blog/first_production_incident_agent/">Read the post-mortem →</a></p>
 		</aside>
 		<p class="note">
-			These rules govern what agents do <em>through Recouvrance</em>. An agent with shell access can still run
-			<code>kubectl</code> with your kubeconfig: block <code>kubectl</code> and <code>helm</code> in its own permissions if
-			Recouvrance should be the only way in.
+			Rules cover what agents do through Recouvrance. Block <code>kubectl</code> and <code>helm</code> in the agent's own
+			permissions so Recouvrance is the only way in.
 		</p>
 	</section>
 
