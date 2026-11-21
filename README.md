@@ -4,7 +4,7 @@ This is my blog site. Please feel free to contribute or correct me.
 
 I've done this using [Astro](https://astro.build/), hosted on Cloudflare Workers.
 It ships no JavaScript, and posts carry no images (apart from a 1×1 read
-counter, see below). Project pages show screenshots and a video, served from
+counter, see below). Project pages show screenshots and an animated tour, served from
 this site under `/media/`, never from a third party. Readers are counted in the Worker instead of your browser — so there
 is no script, no cookie and nothing to consent to. See [/privacy](https://nahuelcanavy.com/privacy/) and `worker/index.ts`.
 
