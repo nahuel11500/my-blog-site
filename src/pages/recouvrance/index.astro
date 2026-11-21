@@ -19,7 +19,7 @@ const tour = [
 		kicker: 'Problems',
 		title: 'Everything that is broken, on one page',
 		text: 'Crash loops, pending pods, unavailable workloads, NotReady nodes, failed jobs, firing alerts, stuck deletions and certificates about to expire, for every cluster you have open.',
-		points: ['Grouped by severity, newest first', 'Across clusters, keyed by context', 'One click to the object and its diagnosis'],
+		points: ['Critical, warnings and minor, counted at the top', 'Across every cluster you have open', 'One click to the object and its diagnosis'],
 		alt: 'The Problems page listing broken workloads across clusters',
 	},
 	{
@@ -27,7 +27,7 @@ const tour = [
 		kicker: 'Diagnosis',
 		title: 'And why it is broken',
 		text: 'Every broken pod or workload explains itself: the crash output and exit code, why the scheduler refuses it, an image that will not pull, a failing probe, a volume that does not mount.',
-		points: ['The last lines before the crash', 'The kubectl command to look further', 'Events, owners and history on the same page'],
+		points: ['The last lines before the crash', 'Events, owners and history on the same page', 'Investigate further with the assistant, in one click'],
 		alt: 'A crash-looping pod with its diagnosis and last output',
 	},
 	{
@@ -156,7 +156,7 @@ const faq = [
 							))}
 						</ul>
 					</div>
-					<Shot name={t.img} alt={t.alt} />
+					<Shot name={t.img} alt={t.alt} height={1000} />
 				</article>
 			))
 		}
@@ -295,9 +295,11 @@ const faq = [
 	/* Hero */
 	.hero {
 		padding: 4.5em 0 0;
+		/* Navy down to the middle of the window (about 0.3 of its width), paper below. */
 		background:
+			linear-gradient(to bottom, transparent calc(100% - min(355px, 28vw)), var(--paper) 0),
 			radial-gradient(ellipse 80% 60% at 50% 0%, rgba(44, 74, 124, 0.9), transparent),
-			linear-gradient(var(--navy) 0%, var(--navy-deep) 70%, var(--paper) 70%);
+			linear-gradient(var(--navy), var(--navy-deep));
 		color: var(--cream);
 		text-align: center;
 	}
