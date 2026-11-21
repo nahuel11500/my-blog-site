@@ -6,6 +6,7 @@ import Layout from '../layouts/BlogPost.astro';
 	title="Privacy"
 	description="What this blog measures, what it deliberately doesn't, and how you can check."
 	pubDate={new Date('July 14 2026')}
+	updatedDate={new Date('Nov 21 2026')}
 >
 	<p>
 		This site has no cookies, no trackers, no analytics script, and no JavaScript at all. Nothing
@@ -13,7 +14,7 @@ import Layout from '../layouts/BlogPost.astro';
 	</p>
 
 	<p>
-		I do count page views, because I like knowing which posts are worth writing. But the counting
+		I do count readers, because I like knowing which posts are worth writing. But the counting
 		happens on the server as it hands you the page — not in your browser. There is nothing to
 		download, nothing to opt out of, and nothing to consent to.
 	</p>
@@ -23,6 +24,8 @@ import Layout from '../layouts/BlogPost.astro';
 		<li>The path you visited, e.g. <code>/blog/linux_process/</code></li>
 		<li>The <em>host</em> that linked you here, e.g. <code>news.ycombinator.com</code></li>
 		<li>A country code, e.g. <code>FR</code></li>
+		<li>Whether a page was opened, or a post was read to the end</li>
+		<li>Whether the visit looked automated, and why: a bot user agent, or a datacenter network</li>
 		<li>The time</li>
 	</ul>
 
@@ -30,7 +33,9 @@ import Layout from '../layouts/BlogPost.astro';
 	<ul>
 		<li>Your IP address</li>
 		<li>Any cookie, visitor ID or fingerprint</li>
-		<li>Your user agent</li>
+		<li>
+			Your user agent and your network provider — they are looked at to spot bots, then dropped
+		</li>
 		<li>The full referring URL — only its host, so search terms never reach me</li>
 		<li>Anything linking one page view to another, or one visit to the next</li>
 	</ul>
@@ -40,12 +45,33 @@ import Layout from '../layouts/BlogPost.astro';
 		deliberate: I get to see which posts land, and you stay anonymous.
 	</p>
 
+	<h2>"Read to the end"</h2>
+	<p>
+		A page view only says that a browser opened a page, and a good share of them are crawlers. So
+		each post ends with an invisible 1×1 image, marked <code>loading="lazy"</code>: browsers only
+		fetch it when you scroll close to it. That request is the read counter.
+	</p>
+	<p>
+		Your browser keeps that image for a day, so reading the same post twice in a day counts once.
+		That memory stays in your browser: the server never sees anything that tells readers apart.
+	</p>
+
+	<h2>Bots</h2>
+	<p>
+		Crawlers and headless browsers can look a lot like people. Before counting anything, the server
+		checks two things it receives anyway: the user agent (does it say <code>bot</code>,
+		<code>HeadlessChrome</code>, <code>curl</code>…?) and the network it comes from (a cloud
+		provider like AWS or Google Cloud?). Only the verdict is kept. Commercial VPNs and privacy
+		relays are not treated as bots.
+	</p>
+
 	<h2>Don't take my word for it</h2>
 	<p>
-		The blog is open source, and the ~40 lines that do the counting are the whole story:
+		The blog is open source, and one file does all the counting:
 		<a href="https://github.com/nahuel11500/my-blog-site/blob/main/worker/index.ts">
 			worker/index.ts
 		</a>.
-		You can also just open the network tab — there is nothing there.
+		You can also open the network tab: at the end of a post you'll see one extra request,
+		<code>/read/&lt;post&gt;/</code>, a 42-byte transparent image. That's all there is.
 	</p>
 </Layout>

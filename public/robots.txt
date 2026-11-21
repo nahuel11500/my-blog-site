@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# End-of-post read counter, not content. See /privacy/.
+Disallow: /read/
 
 Sitemap: https://nahuelcanavy.com/sitemap-index.xml
