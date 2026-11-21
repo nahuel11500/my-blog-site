@@ -1,119 +1,67 @@
 ---
-import FormattedDate from '../../components/FormattedDate.astro';
 import Shot from '../../components/recouvrance/Shot.astro';
 import Layout from '../../layouts/Recouvrance.astro';
 import { latestReleases } from '../../lib/releases';
-import { BASE, CHANGELOG, GITHUB, INSTALL, MEDIA, REPO, TOOLS, doc } from '../../lib/recouvrance';
+import { BASE, GITHUB, INSTALL, MEDIA, REPO, TOOLS, doc } from '../../lib/recouvrance';
 
-const releases = await latestReleases(REPO);
-const version = releases[0]?.tag;
+const releases = await latestReleases(REPO, 1);
+const release = releases[0];
 
-const title = 'Recouvrance: the Kubernetes client that tells you what is wrong';
+const title = 'Recouvrance: the fast Kubernetes client, for you and your agents';
 const description =
-	'A fast, native Kubernetes desktop client in Rust. It finds what is broken across your clusters and why, and its local MCP server lets AI agents help under rules you set.';
+	'A native Kubernetes desktop client in Rust and gpui, the engine behind Zed. It finds what is broken, and lets AI agents help under your rules.';
 
-// The big alternating sections, each a screenshot and what it shows.
-const tour = [
-	{
-		img: 'problems',
-		kicker: 'Problems',
-		title: 'Everything that is broken, on one page',
-		text: 'Crash loops, pending pods, unavailable workloads, NotReady nodes, failed jobs, firing alerts, stuck deletions and certificates about to expire, for every cluster you have open.',
-		points: ['Critical, warnings and minor, counted at the top', 'Across every cluster you have open', 'One click to the object and its diagnosis'],
-		alt: 'The Problems page listing broken workloads across clusters',
-	},
-	{
-		img: 'diagnosis',
-		kicker: 'Diagnosis',
-		title: 'And why it is broken',
-		text: 'Every broken pod or workload explains itself: the crash output and exit code, why the scheduler refuses it, an image that will not pull, a failing probe, a volume that does not mount.',
-		points: ['The last lines before the crash', 'Events, owners and history on the same page', 'Investigate further with the assistant, in one click'],
-		alt: 'A crash-looping pod with its diagnosis and last output',
-	},
-	{
-		img: 'logs',
-		kicker: 'Logs',
-		title: 'Logs across every pod',
-		text: 'All the pods of a deployment, a DaemonSet or a Service, merged in time order, each line marked with its pod, dozens of pods at once.',
-		points: ['Levels, histogram and time range', 'Find with regex, readable JSON', 'Follow, previous container, download'],
-		alt: 'Logs of every pod of a deployment, merged, with levels and a timeline',
-	},
-	{
-		img: 'command-palette',
-		kicker: 'Speed',
-		title: 'Ctrl+K to anything, on any cluster',
-		text: 'Live tables with kubectl’s own columns for every type, CRDs included, and a filter that understands them: <code>status:Running restarts&gt;3 age&lt;1h</code>.',
-		points: ['Command palette across clusters', 'Saved views and searches', 'Keyboard first: ↑ ↓ Enter Esc'],
-		alt: 'The command palette finding objects and pages',
-	},
+const pillars = [
+	{ title: 'Fast. Really.', text: 'Native Rust on gpui, the GPU engine behind Zed. No browser inside.' },
+	{ title: 'Knows what is wrong', text: 'Problems across clusters, and a diagnosis on every broken pod.' },
+	{ title: 'Agents, on your rules', text: 'A local MCP server with allow, ask and deny, approvals and an audit log.' },
 ];
 
-const features = [
-	{ title: 'Several clusters at once', text: 'Merged tables with a Context column. Compare an object across clusters.' },
-	{ title: 'Roll back anything', text: 'Deployments, StatefulSets and DaemonSets, with a diff and a server dry run.' },
-	{ title: 'Helm, Flux and Argo CD', text: 'Upgrade with edited values, roll back, reconcile, sync, and see the Application behind an object.' },
-	{ title: 'Usage history', text: 'From Prometheus or VictoriaMetrics, found through the API server. Used against requested.' },
-	{ title: 'Shell, files, port-forwards', text: 'Exec, attach, a file browser and copy. Port-forwards are remembered and follow new pods.' },
-	{ title: 'Access made clear', text: 'Who can, the effective access of a ServiceAccount, short-lived kubeconfigs.' },
-	{ title: 'Reachability', text: 'Follows a request to a Service, an Ingress or an HTTPRoute and names the first step that breaks.' },
-	{ title: 'Upgrade check', text: 'Removed APIs still in use, version skew, drains that would block, before you upgrade.' },
-	{ title: 'Timeline', text: 'What changed on your clusters while the app watched, searchable, with diffs.' },
+const agentShots = [
+	{ img: 'approval', title: 'Rules and approvals', text: 'Allow, ask or deny, like RBAC. Ask me waits for your click.', alt: "An agent's request waiting for approval above its rules", height: 981 },
+	{ img: 'activity', title: 'Audit log', text: 'Every call, grouped by task, with the rule that decided it.', alt: "An agent's calls grouped by task", height: 1000 },
+	{ img: 'assistant', title: 'Built-in assistant', text: 'Investigate from any broken pod, through your Claude Code.', alt: 'The assistant explaining why a pod crash-loops', height: 1000 },
 ];
 
-const works = ['Any Kubernetes cluster', 'Helm', 'Argo CD', 'Flux', 'Prometheus', 'VictoriaMetrics', 'Claude Code', 'Any MCP client'];
+const everyday = [
+	{ img: 'logs', title: 'Logs across pods', alt: 'Logs of every pod of a deployment, merged, with levels and a histogram', height: 1000 },
+	{ img: 'command-palette', title: 'Ctrl+K to anything', alt: 'The command palette finding objects and pages', height: 1000 },
+	{ img: 'pods-dark', title: 'Light and dark', alt: 'The pods table in the dark theme', height: 981 },
+];
+
+const more = ['Several clusters at once', 'Helm', 'Argo CD and Flux', 'Rollbacks with diffs', 'Shell, attach, files', 'Port-forwards', 'RBAC and who-can', 'Usage history', 'Reachability', 'Upgrade check', 'Timeline', 'CRDs'];
 
 const faq = [
-	{
-		q: 'Is it safe to let an agent work on my clusters?',
-		a: `Agents get only what their rules allow, and anything no rule matches is denied. <em>Ask me</em> rules wait for your approval in the window, every call is written to an audit log, and a kill switch cuts every agent off. More on the <a href="${BASE}/agents/">agents page</a>.`,
-	},
-	{
-		q: 'How is it different from Lens, Headlamp or Aptakube?',
-		a: `It is a native app with no web view, it tells you why things are broken instead of only listing them, and it is built for agents to work under rules, approvals and an audit log. See the <a href="${BASE}/compare/">feature-by-feature comparison</a>.`,
-	},
-	{
-		q: 'Does it send data anywhere?',
-		a: 'No telemetry, no analytics. It talks to your clusters, to the Prometheus or VictoriaMetrics you point it at, and to Anthropic only if you use the assistant.',
-	},
-	{
-		q: 'Do I need Claude?',
-		a: 'No. The client works on its own, and the MCP server works with any MCP client. The built-in assistant uses your Claude Code login, or an Anthropic API key.',
-	},
-	{
-		q: 'Does it run on Windows?',
-		a: 'Not yet. It runs on Linux (x86_64 and arm64) and macOS (Intel and Apple silicon).',
-	},
-	{
-		q: 'Is it free?',
-		a: 'Yes, and open source, under the MIT or Apache-2.0 license, your choice. No account, no sign-in.',
-	},
-	{
-		q: 'Where does the name come from?',
-		a: '<em>Recouvrance</em> is a schooner from Brest, a replica of an 1817 aviso: the fast ships that carried dispatches. In French, <em>recouvrer</em> means to recover.',
-	},
+	{ q: 'Is it safe to let an agent in?', a: `Agents only get what their rules allow; anything else is denied. <a href="${BASE}/agents/">How agents work</a>.` },
+	{ q: 'How is it different from Lens or Headlamp?', a: `Native, no web view, it diagnoses instead of only listing, and it is built for agents. <a href="${BASE}/compare/">Comparison</a>.` },
+	{ q: 'Does it send data anywhere?', a: 'No telemetry. Only your clusters, your Prometheus, and Anthropic if you use the assistant.' },
+	{ q: 'Is it free?', a: 'Yes: open source, MIT or Apache-2.0. Linux and macOS; Windows not yet.' },
 ];
 ---
 
 <Layout title={title} description={description}>
 	<section class="hero">
 		<div class="rv-wrap">
-			<a class="badge" href={releases[0]?.url ?? `${GITHUB}/releases`}>
-				<span>New</span>
-				{version ? `${version} is out` : 'Latest release'}: see what changed →
-			</a>
-			<h1>The Kubernetes client that tells you <em>what is wrong</em>.</h1>
+			{
+				release && (
+					<a class="badge" href={release.url}>
+						<span>New</span>
+						{release.tag} is out →
+					</a>
+				)
+			}
+			<h1>Kubernetes at <em>native speed</em>.<br />For you and your agents.</h1>
 			<p class="lede">
-				Recouvrance is a fast, native desktop client for your clusters, written in Rust. It finds what is
-				broken and explains why, and its local MCP server lets AI agents help, under rules you set.
+				Rust and gpui, the engine behind Zed. It finds what is broken, and lets AI agents help under your rules.
 			</p>
 			<p class="actions">
-				<a class="button primary" href={`${BASE}/download/`}>Download for Linux and macOS</a>
-				<a class="button" href={GITHUB}>View on GitHub</a>
+				<a class="button primary" href={`${BASE}/download/`}>Download</a>
+				<a class="button" href={GITHUB}>GitHub</a>
 			</p>
-			<pre class="install" aria-label="Install command"><code>{INSTALL}</code></pre>
-			<p class="meta">Free and open source · No account · No telemetry · Starts read-only</p>
+			<pre class="install" title="Click to select, then copy"><code>{INSTALL}</code></pre>
+			<p class="meta">Linux and macOS · Free and open source · No telemetry</p>
 		</div>
-		<div class="rv-wrap stage">
+		<div class="rv-wrap">
 			<figure class="window">
 				<picture>
 					<source media="(prefers-reduced-motion: reduce)" srcset={`${MEDIA}/tour-poster.webp`} />
@@ -122,154 +70,107 @@ const faq = [
 						width="1600"
 						height="981"
 						fetchpriority="high"
-						alt="A tour of Recouvrance: the pods table, the command palette, a crash diagnosis, logs across pods, the Problems page and the workloads overview"
+						alt="A tour of Recouvrance: the pods table, the command palette, a crash diagnosis, the assistant finding its cause, logs across pods, the Problems page, an agent's request waiting for approval and the dark theme"
 					/>
 				</picture>
 			</figure>
 		</div>
 	</section>
 
-	<section class="works rv-wrap" aria-label="Works with">
-		<span>Works with</span>
-		<ul>
-			{works.map((w) => <li>{w}</li>)}
-		</ul>
-	</section>
-
-	<section id="features" class="section rv-wrap">
-		<p class="kicker">Tells you what is wrong</p>
-		<h2 class="section-title">Less time finding the problem, more time fixing it</h2>
-		<p class="section-lede">
-			Most clients list objects and leave the detective work to you. Recouvrance reads them the way you
-			would, and puts the answer first.
-		</p>
+	<section class="rv-wrap pillars">
 		{
-			tour.map((t, i) => (
-				<article class={`row${i % 2 ? ' flip' : ''}`}>
-					<div class="copy">
-						<p class="kicker">{t.kicker}</p>
-						<h3>{t.title}</h3>
-						<p set:html={t.text} />
-						<ul class="checks">
-							{t.points.map((p) => (
-								<li>{p}</li>
-							))}
-						</ul>
-					</div>
-					<Shot name={t.img} alt={t.alt} height={1000} />
+			pillars.map((p) => (
+				<article>
+					<h2>{p.title}</h2>
+					<p>{p.text}</p>
 				</article>
 			))
 		}
 	</section>
 
-	<section class="agents-band">
-		<div class="rv-wrap split">
-			<div>
-				<p class="kicker">Built for agents</p>
-				<h2 class="section-title">Your agents work on your clusters. You keep the rules.</h2>
-				<p>
-					While it runs, Recouvrance serves MCP on localhost. Connect Claude Code in one click, or any MCP
-					client, and give each agent rules that read like Kubernetes RBAC, with an effect.
-				</p>
-				<ul class="checks">
-					<li><strong>Approvals.</strong> An <em>Ask me</em> rule shows you the exact request before it runs.</li>
-					<li><strong>Audit log and kill switch.</strong> Every call is logged; one switch cuts every agent off.</li>
-					<li><strong>{TOOLS} tools.</strong> Logs, diffs, rollouts, port-forwards, debug containers, drain, <code>can-i</code>.</li>
-				</ul>
-				<p class="actions left">
-					<a class="button primary" href={`${BASE}/agents/`}>How agents work</a>
-				</p>
-			</div>
-			<figure class="rules">
-				<table>
-					<thead>
-						<tr><th>Effect</th><th>Verbs</th><th>Resources</th><th>Namespaces</th><th>Contexts</th></tr>
-					</thead>
-					<tbody>
-						<tr><td><span class="effect allow">Allow</span></td><td>get, list, logs</td><td>*</td><td>*</td><td>*</td></tr>
-						<tr><td><span class="effect ask">Ask me</span></td><td>scale, restart</td><td>deployments</td><td>team-*</td><td>staging</td></tr>
-						<tr><td><span class="effect deny">Deny</span></td><td>reveal</td><td>secrets</td><td>*</td><td>*</td></tr>
-						<tr><td><span class="effect deny">Deny</span></td><td>delete, drain</td><td>*</td><td>*</td><td>prod-*</td></tr>
-					</tbody>
-				</table>
-				<figcaption>Deny wins, then Ask me, then Allow. Anything no rule matches is denied.</figcaption>
-			</figure>
-		</div>
-	</section>
-
-	<section class="section rv-wrap">
-		<p class="kicker">Everything in one place</p>
-		<h2 class="section-title">The rest of what you reach for, one click away</h2>
-		<div class="grid">
-			<Shot name="workloads" alt="The workloads overview with warnings and recent restarts" sizes="(max-width: 900px) 100vw, 560px" />
-			<Shot name="pods-dark" alt="The pods table in the dark theme" sizes="(max-width: 900px) 100vw, 560px" />
-		</div>
-		<div class="features">
-			{
-				features.map((f) => (
-					<article>
-						<h3>{f.title}</h3>
-						<p>{f.text}</p>
-					</article>
-				))
-			}
-		</div>
-		<p><a href={doc('features.md')}>Every feature, in the docs →</a></p>
-	</section>
-
-	<section class="numbers">
+	<section class="speed">
 		<div class="rv-wrap">
-			<p class="kicker">Native, no web view</p>
-			<h2 class="section-title">Rust and gpui, the toolkit behind the Zed editor</h2>
+			<p class="kicker">Native speed</p>
+			<h2>No Electron. No web view. Just Rust on the GPU.</h2>
+			<p class="sub">
+				Built on <a href="https://github.com/zed-industries/zed/tree/main/crates/gpui">gpui</a>, the framework <a href="https://zed.dev/">Zed</a> draws its editor
+				with. Tables are paged on the server, so huge clusters stay light.
+			</p>
 			<dl>
-				<div><dt>174 MB</dt><dd>peak memory listing 23,958 pods of a production cluster</dd></div>
-				<div><dt>{TOOLS}</dt><dd>MCP tools for agents, each checked against your rules</dd></div>
-				<div><dt>0</dt><dd>telemetry or analytics calls</dd></div>
-				<div><dt>0</dt><dd>lines of <code>unsafe</code> Rust: the crate forbids it</dd></div>
+				<div><dt>174 MB</dt><dd>with 23,958 pods listed</dd></div>
+				<div><dt>0</dt><dd>browsers inside</dd></div>
+				<div><dt>0</dt><dd>lines of <code>unsafe</code> Rust</dd></div>
+				<div><dt>0</dt><dd>telemetry calls</dd></div>
 			</dl>
 		</div>
 	</section>
 
-	<section class="section rv-wrap split">
-		<div>
-			<p class="kicker">Safe by default</p>
-			<h2 class="section-title">It holds your credentials. It earns that.</h2>
+	<section id="features" class="section rv-wrap">
+		<p class="kicker">Built for agents</p>
+		<h2 class="section-title">Your agents work on your clusters. You keep the rules.</h2>
+		<p class="section-lede">Connect Claude Code in one click, or any MCP client. {TOOLS} tools, every call checked.</p>
+		<div class="trio">
+			{
+				agentShots.map((s) => (
+					<article>
+						<Shot name={s.img} alt={s.alt} height={s.height} sizes="(max-width: 900px) 100vw, 380px" />
+						<h3>{s.title}</h3>
+						<p>{s.text}</p>
+					</article>
+				))
+			}
 		</div>
-		<ul class="checks">
-			<li><strong>Read-only until you say so.</strong> Every write shows its <code>kubectl</code> equivalent and asks first.</li>
-			<li><strong>Dry run first.</strong> YAML edits and applies are checked by the API server before they land.</li>
-			<li><strong>Protected contexts.</strong> Production waits a few seconds, or makes you type its name.</li>
-			<li><strong>Verifiable releases.</strong> Build provenance attestations and an SBOM on every release.</li>
-			<li><strong>Checked continuously.</strong> Fuzzed parsers, cargo-deny, CI pinned to commits, an <a href="https://scorecard.dev/viewer/?uri=github.com/nahuel11500/recouvrance">OpenSSF Scorecard</a>.</li>
+		<p class="more-link"><a href={`${BASE}/agents/`}>How agents work →</a></p>
+	</section>
+
+	<section class="section rv-wrap">
+		<p class="kicker">Knows what is wrong</p>
+		<h2 class="section-title">What is broken, and why.</h2>
+		<div class="duo">
+			<article>
+				<Shot name="problems" alt="The Problems page listing broken workloads" height={1000} sizes="(max-width: 900px) 100vw, 570px" />
+				<h3>Problems</h3>
+				<p>Crash loops, pending pods, failed jobs, across every cluster you have open.</p>
+			</article>
+			<article>
+				<Shot name="diagnosis" alt="A crash-looping pod with its diagnosis and last output" height={1000} sizes="(max-width: 900px) 100vw, 570px" />
+				<h3>Diagnosis</h3>
+				<p>The crash output, the exit code, the reason. On the pod's page.</p>
+			</article>
+		</div>
+	</section>
+
+	<section class="section rv-wrap">
+		<p class="kicker">Everything else</p>
+		<h2 class="section-title">Everything you reach for, one click away.</h2>
+		<div class="trio">
+			{
+				everyday.map((s) => (
+					<article>
+						<Shot name={s.img} alt={s.alt} height={s.height} sizes="(max-width: 900px) 100vw, 380px" />
+						<h3>{s.title}</h3>
+					</article>
+				))
+			}
+		</div>
+		<ul class="chips">
+			{more.map((m) => <li>{m}</li>)}
+		</ul>
+		<p class="more-link"><a href={doc('features.md')}>All features →</a></p>
+	</section>
+
+	<section class="section rv-wrap">
+		<p class="kicker">Safe by default</p>
+		<ul class="chips strong">
+			<li>Read-only until you say so</li>
+			<li>Dry run before every write</li>
+			<li>Protected contexts</li>
+			<li>Signed, attested releases</li>
 		</ul>
 	</section>
 
-	{
-		releases.length > 0 && (
-			<section class="section rv-wrap">
-				<p class="kicker">Shipping often</p>
-				<h2 class="section-title">Latest releases</h2>
-				<ol class="releases">
-					{releases.map((r) => (
-						<li>
-							<a class="tag" href={r.url}>{r.tag}</a>
-							<FormattedDate date={r.date} />
-							<ul>
-								{r.highlights.map((h) => (
-									<li set:html={h} />
-								))}
-							</ul>
-						</li>
-					))}
-				</ol>
-				<p><a href={CHANGELOG}>Full changelog →</a></p>
-			</section>
-		)
-	}
-
 	<section class="section rv-wrap faq">
-		<p class="kicker">Questions</p>
-		<h2 class="section-title">Questions, answered</h2>
+		<h2 class="section-title">Questions</h2>
 		{
 			faq.map((f) => (
 				<details>
@@ -282,17 +183,16 @@ const faq = [
 
 	<section class="closing">
 		<div class="rv-wrap">
-			<h2>Try it on your clusters. It starts read-only.</h2>
+			<h2>Try it. It starts read-only.</h2>
 			<p class="actions">
 				<a class="button primary" href={`${BASE}/download/`}>Download</a>
-				<a class="button" href={GITHUB}>Star it on GitHub</a>
+				<a class="button" href={GITHUB}>Star on GitHub</a>
 			</p>
 		</div>
 	</section>
 </Layout>
 
 <style>
-	/* Hero */
 	.hero {
 		padding: 4.5em 0 0;
 		/* Navy down to the middle of the window (about 0.3 of its width), paper below. */
@@ -327,21 +227,20 @@ const faq = [
 		color: #fff;
 	}
 	.hero h1 {
-		max-width: 15em;
-		margin: 0 auto 0.4em;
+		margin: 0 auto 0.45em;
 		color: #fff;
-		font-size: 3.4em;
-		line-height: 1.06;
+		font-size: 3.3em;
+		line-height: 1.08;
 	}
 	.hero h1 em {
 		color: var(--brass);
 		font-style: normal;
 	}
 	.lede {
-		max-width: 36em;
+		max-width: 32em;
 		margin: 0 auto 1.8em;
-		color: rgba(241, 230, 207, 0.88);
-		font-size: 1.15em;
+		color: rgba(241, 230, 207, 0.85);
+		font-size: 1.12em;
 	}
 	.actions {
 		display: flex;
@@ -350,228 +249,142 @@ const faq = [
 		gap: 0.75em;
 		margin: 0 0 1.5em;
 	}
-	.actions.left {
-		justify-content: flex-start;
-		margin-top: 1.5em;
-	}
 	.hero .install {
 		max-width: 44em;
-		margin: 0 auto 1em;
+		margin: 0 auto 0.9em;
 	}
 	.meta {
 		margin: 0 0 3.5em;
 		color: rgba(241, 230, 207, 0.6);
 		font-size: 0.85em;
 	}
-	.stage {
-		max-width: min(1160px, calc(100% - 2.5em));
-	}
 
-	/* Works with */
-	.works {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: center;
-		gap: 0.8em 1.6em;
-		padding: 2.5em 0 0;
-		color: var(--muted);
-		font-size: 0.88em;
-	}
-	.works span {
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		font-size: 0.85em;
-	}
-	.works ul {
-		display: contents;
-		list-style: none;
-	}
-	.works li {
-		padding: 0.2em 0.8em;
-		border: 1px solid var(--line);
-		border-radius: 999px;
-		background: #fff;
-	}
-
-	/* Alternating rows */
-	.row {
-		display: grid;
-		grid-template-columns: 5fr 7fr;
-		gap: 3.5em;
-		align-items: center;
-		margin: 4em 0 0;
-	}
-	.row.flip .copy {
-		order: 2;
-	}
-	.row h3 {
-		margin-bottom: 0.4em;
-		font-size: 1.75em;
-		line-height: 1.2;
-	}
-	.row .copy > p:not(.kicker) {
-		color: var(--muted);
-	}
-
-	/* Agents band */
-	.agents-band {
-		margin-top: 6em;
-		padding: 5em 0;
-		background: linear-gradient(160deg, var(--navy), var(--navy-deep));
-		color: rgba(241, 230, 207, 0.88);
-	}
-	.agents-band h2,
-	.agents-band strong {
-		color: #fff;
-	}
-	.agents-band code {
-		background: rgba(255, 255, 255, 0.1);
-		color: var(--cream);
-	}
-	.split {
-		display: grid;
-		grid-template-columns: 1fr 1.1fr;
-		gap: 3em;
-		align-items: center;
-	}
-	.rules {
-		margin: 0;
-		padding: 1.3em;
-		border: 1px solid rgba(241, 230, 207, 0.12);
-		border-radius: 12px;
-		background: rgba(0, 0, 0, 0.25);
-		overflow-x: auto;
-	}
-	.rules table {
-		width: 100%;
-		border-collapse: collapse;
-		font: 0.72em/1.4 var(--mono);
-	}
-	.rules th {
-		color: rgba(241, 230, 207, 0.55);
-		font-weight: 400;
-		text-align: left;
-	}
-	.rules th,
-	.rules td {
-		padding: 0.6em 0.55em;
-		border-bottom: 1px solid rgba(241, 230, 207, 0.1);
-		white-space: nowrap;
-	}
-	.rules figcaption {
-		margin-top: 0.9em;
-		color: rgba(241, 230, 207, 0.7);
-		font-size: 0.8em;
-	}
-
-	/* Grid and features */
-	.grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1.5em;
-		margin-top: 1em;
-	}
-	.features {
+	.pillars {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 0;
-		margin: 2.5em 0 1.5em;
-		border-top: 1px solid var(--line);
-		border-left: 1px solid var(--line);
+		gap: 2em;
+		padding-top: 3.5em;
 	}
-	.features article {
-		padding: 1.4em 1.5em;
-		border-right: 1px solid var(--line);
-		border-bottom: 1px solid var(--line);
-		background: #fff;
+	.pillars h2 {
+		margin-bottom: 0.25em;
+		font-size: 1.3em;
 	}
-	.features h3 {
-		margin-bottom: 0.3em;
-		font-size: 1.05em;
-	}
-	.features p {
+	.pillars p {
 		margin: 0;
 		color: var(--muted);
-		font-size: 0.9em;
 	}
 
-	/* Numbers */
-	.numbers {
-		margin-top: 6em;
+	.speed {
+		margin-top: 5em;
 		padding: 4.5em 0;
-		background: var(--navy);
-		color: var(--cream);
+		background: linear-gradient(160deg, var(--navy), var(--navy-deep));
+		color: rgba(241, 230, 207, 0.85);
 	}
-	.numbers h2 {
+	.speed h2 {
+		max-width: 16em;
+		margin-bottom: 0.4em;
 		color: #fff;
+		font-size: 2.4em;
+		line-height: 1.12;
 	}
-	.numbers dl {
+	.speed .sub {
+		max-width: 36em;
+		margin: 0;
+	}
+	.speed a {
+		color: var(--brass);
+	}
+	.speed dl {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 2em;
-		margin: 2em 0 0;
+		margin: 2.5em 0 0;
 	}
-	.numbers dt {
+	.speed dt {
 		color: var(--brass);
-		font-size: 2.8em;
+		font-size: 3em;
 		font-weight: 700;
-		line-height: 1.1;
+		line-height: 1;
 	}
-	.numbers dd {
-		margin: 0.3em 0 0;
-		color: rgba(241, 230, 207, 0.75);
+	.speed dd {
+		margin: 0.4em 0 0;
+		color: rgba(241, 230, 207, 0.7);
 		font-size: 0.9em;
 	}
-	.numbers code {
+	.speed code {
 		background: rgba(255, 255, 255, 0.12);
 		color: var(--cream);
 	}
 
-	/* Releases */
-	.releases {
-		list-style: none;
-		margin: 0 0 1em;
-		padding: 0;
+	.trio,
+	.duo {
+		display: grid;
+		gap: 1.6em;
 	}
-	.releases > li {
-		padding: 1em 0;
-		border-bottom: 1px solid var(--line);
+	.trio {
+		grid-template-columns: repeat(3, 1fr);
+	}
+	.duo {
+		grid-template-columns: 1fr 1fr;
+	}
+	.trio h3,
+	.duo h3 {
+		margin: 0.9em 0 0.15em;
+		font-size: 1.1em;
+	}
+	.trio p,
+	.duo p {
+		margin: 0;
 		color: var(--muted);
 		font-size: 0.92em;
 	}
-	.releases .tag {
-		margin-right: 0.8em;
-		font-weight: 700;
-		text-decoration: none;
-	}
-	.releases ul {
-		margin: 0.3em 0 0;
-		padding-left: 1.2em;
-		color: var(--ink);
+	.more-link {
+		margin: 1.5em 0 0;
 	}
 
-	/* FAQ */
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+		margin: 2em 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.chips li {
+		padding: 0.25em 0.85em;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		background: #fff;
+		color: var(--ink);
+		font-size: 0.88em;
+	}
+	.chips.strong {
+		margin-top: 0.5em;
+	}
+	.chips.strong li {
+		padding: 0.45em 1em;
+		border-color: rgba(200, 145, 62, 0.4);
+		background: rgba(200, 145, 62, 0.08);
+		font-weight: 700;
+	}
+
 	.faq details {
 		max-width: 46em;
-		padding: 1em 0;
+		padding: 0.9em 0;
 		border-bottom: 1px solid var(--line);
 	}
 	.faq summary {
 		cursor: pointer;
-		color: var(--ink);
 		font-weight: 700;
 	}
 	.faq details p {
-		margin: 0.7em 0 0.3em;
+		margin: 0.5em 0 0.2em;
 		color: var(--muted);
 	}
 
-	/* Closing */
 	.closing {
-		margin-top: 6em;
-		padding: 4.5em 0;
+		margin-top: 5em;
+		padding: 4em 0;
 		background: radial-gradient(ellipse at top, var(--sea), var(--navy) 60%, var(--navy-deep));
 		text-align: center;
 	}
@@ -582,30 +395,20 @@ const faq = [
 	}
 
 	@media (max-width: 900px) {
-		.row,
-		.split,
-		.grid {
+		.pillars,
+		.trio,
+		.duo {
 			grid-template-columns: 1fr;
-			gap: 1.8em;
 		}
-		.row.flip .copy {
-			order: 0;
-		}
-		.features {
-			grid-template-columns: 1fr 1fr;
-		}
-		.numbers dl {
+		.speed dl {
 			grid-template-columns: 1fr 1fr;
 		}
 	}
 	@media (max-width: 560px) {
 		.hero h1 {
-			font-size: 2.3em;
+			font-size: 2.2em;
 		}
-		.features {
-			grid-template-columns: 1fr;
-		}
-		.rv-site .section-title {
+		.speed h2 {
 			font-size: 1.8em;
 		}
 	}

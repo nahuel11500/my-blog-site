@@ -96,7 +96,6 @@ const links = [
 				</div>
 			</div>
 			<div class="rv-wrap bottom">
-				<span>Made by <a href="/about/">Nahuel Canavy</a> in Brest, France.</span>
 				<span>No cookies, no trackers, no JavaScript on this site. <a href="/privacy/">Privacy</a>.</span>
 			</div>
 		</footer>
@@ -234,10 +233,29 @@ const links = [
 		text-align: left;
 		white-space: pre-wrap;
 		word-break: break-all;
+		/* The command wraps; visible so the hint above the box isn't clipped. */
+		overflow: visible;
 	}
 	.rv-site .install::before {
 		content: '$ ';
 		color: var(--brass);
+	}
+	/* No JavaScript, so no copy button: one click selects the whole command. */
+	.rv-site .install code {
+		user-select: all;
+		-webkit-user-select: all;
+		cursor: text;
+	}
+	.rv-site .install::after {
+		content: 'click to select';
+		position: absolute;
+		top: -0.85em;
+		right: 1em;
+		padding: 0.1em 0.6em;
+		border-radius: 999px;
+		background: var(--brass);
+		color: var(--navy-deep);
+		font: 700 0.75em/1.5 Atkinson, sans-serif;
 	}
 	.rv-site .install.on-paper {
 		background: var(--navy-deep);
