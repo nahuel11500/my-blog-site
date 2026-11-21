@@ -5,9 +5,9 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 
-type Props = CollectionEntry<'blog'>['data'] & { ogImage?: string };
+type Props = CollectionEntry<'blog'>['data'] & { ogImage?: string; slug?: string };
 
-const { title, description, pubDate, updatedDate, ogImage } = Astro.props;
+const { title, description, pubDate, updatedDate, ogImage, slug } = Astro.props;
 ---
 
 <html lang="en">
@@ -33,6 +33,13 @@ const { title, description, pubDate, updatedDate, ogImage } = Astro.props;
 			.last-updated-on {
 				font-style: italic;
 			}
+			/* Invisible, but laid out: browsers skip lazy images that are display:none. */
+			.read-marker {
+				display: block;
+				width: 1px;
+				height: 1px;
+				opacity: 0;
+			}
 		</style>
 	</head>
 
@@ -56,6 +63,25 @@ const { title, description, pubDate, updatedDate, ogImage } = Astro.props;
 						<hr />
 					</div>
 					<slot />
+					{
+						/*
+						 * Read counter: browsers fetch a lazy image only when the reader
+						 * scrolls near it, so this request means "reached the end of the
+						 * post". See worker/index.ts and /privacy/.
+						 */
+						slug && (
+							<img
+								class="read-marker"
+								src={`/read/${slug}/`}
+								alt=""
+								width="1"
+								height="1"
+								loading="lazy"
+								decoding="async"
+								aria-hidden="true"
+							/>
+						)
+					}
 				</div>
 			</article>
 		</main>

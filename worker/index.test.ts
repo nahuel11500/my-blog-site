@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isPageView, referrerHost } from './index.ts';
+import worker, { botReason, isPageView, isRead, referrerHost } from './index.ts';
 
 const html = (status = 200) =>
 	new Response('', { status, headers: { 'content-type': 'text/html;charset=utf-8' } });
@@ -55,4 +55,77 @@ test('keeps the referrer host but never the query', () => {
 	assert.equal(from('https://www.google.com/search?q=private+search+terms'), 'www.google.com');
 	assert.equal(from('https://nahuelcanavy.com/blog/'), 'internal');
 	assert.equal(from('not-a-url'), 'unknown');
+});
+
+const CHROME =
+	'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+
+const readUrl = new URL('https://nahuelcanavy.com/read/linux_process/');
+const beaconFetch = (headers: Record<string, string> = {}, url = readUrl) =>
+	new Request(url, {
+		headers: {
+			'sec-fetch-dest': 'image',
+			'sec-fetch-mode': 'no-cors',
+			referer: 'https://nahuelcanavy.com/blog/linux_process/',
+			...headers,
+		},
+	});
+
+test('counts a read when the post itself loads its end-of-post image', () => {
+	assert.equal(isRead(beaconFetch(), readUrl, 'linux_process'), true);
+});
+
+test('ignores reads that do not come from that post on this site', () => {
+	const bare = new Request(readUrl);
+	const otherPost = beaconFetch({ referer: 'https://nahuelcanavy.com/blog/cgroup_namespaces/' });
+	const otherSite = beaconFetch({ referer: 'https://evil.example/blog/linux_process/' });
+	const navigation = beaconFetch({ 'sec-fetch-dest': 'document' });
+
+	assert.equal(isRead(bare, readUrl, 'linux_process'), false);
+	assert.equal(isRead(otherPost, readUrl, 'linux_process'), false);
+	assert.equal(isRead(otherSite, readUrl, 'linux_process'), false);
+	assert.equal(isRead(navigation, readUrl, 'linux_process'), false);
+});
+
+test('flags automated clients by user-agent or datacenter network', () => {
+	assert.equal(botReason(CHROME, 3215), null); // a home ISP
+	assert.equal(botReason(CHROME, 13335), null); // Cloudflare WARP / relays still count
+	assert.equal(botReason(CHROME, undefined), null);
+	assert.equal(botReason(CHROME.replace('Chrome/', 'HeadlessChrome/'), 3215), 'ua');
+	assert.equal(botReason('Googlebot/2.1 (+http://www.google.com/bot.html)', 15169), 'ua');
+	assert.equal(botReason('curl/8.5.0', 3215), 'ua');
+	assert.equal(botReason(null, 3215), 'ua');
+	assert.equal(botReason(CHROME, 16509), 'asn'); // AWS
+});
+
+/** Runs the Worker against fake bindings and returns what it wrote. */
+async function run(request: Request) {
+	const points: AnalyticsEngineDataPoint[] = [];
+	const env = {
+		ASSETS: { fetch: async () => html() },
+		PAGEVIEWS: { writeDataPoint: (p: AnalyticsEngineDataPoint) => points.push(p) },
+	};
+	const response = await worker.fetch(request as never, env as never);
+	return { response, points };
+}
+
+test('records a view with its event and bot fields', async () => {
+	const { points } = await run(navigation({ 'user-agent': CHROME }));
+	assert.deepEqual(points[0].blobs, ['/blog/linux_process/', 'direct', 'unknown', 'nahuelcanavy.com', 'view', '']);
+});
+
+test('records a read against the post path and always answers with the image', async () => {
+	const read = await run(beaconFetch({ 'user-agent': CHROME }));
+	assert.equal(read.response.headers.get('content-type'), 'image/gif');
+	assert.equal(read.response.headers.get('cache-control'), 'private, max-age=86400');
+	assert.deepEqual(read.points[0].blobs, ['/blog/linux_process/', 'n/a', 'unknown', 'nahuelcanavy.com', 'read', '']);
+
+	const bare = await run(new Request(readUrl));
+	assert.equal(bare.response.status, 200);
+	assert.equal(bare.points.length, 0);
+});
+
+test('keeps bot traffic, labelled, so the filter can be checked', async () => {
+	const { points } = await run(navigation({ 'user-agent': 'HeadlessChrome/141' }));
+	assert.equal(points[0].blobs?.[5], 'ua');
 });
