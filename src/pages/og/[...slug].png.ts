@@ -26,13 +26,12 @@ export async function getStaticPaths() {
 			params: { slug: 'default' },
 			props: { title: SITE_TITLE, description: SITE_DESCRIPTION },
 		},
-		{
-			params: { slug: 'projects/recouvrance' },
-			props: {
-				title: 'Recouvrance: a Kubernetes client for you and your agents',
-				description: 'Native, in Rust, with a local MCP server so AI agents work on your clusters under rules you set.',
-			},
-		},
+		...[
+			['recouvrance', 'Recouvrance: the Kubernetes client that tells you what is wrong', 'Native, in Rust. It finds what is broken across your clusters and why, and lets AI agents help under rules you set.'],
+			['recouvrance/agents', 'Let agents work on your clusters. Keep the rules.', 'Recouvrance serves MCP on localhost: allow, ask or deny, approvals, an audit log and a kill switch.'],
+			['recouvrance/compare', 'Recouvrance compared', 'Feature by feature, with Aptakube, FreeLens and Headlamp.'],
+			['recouvrance/download', 'Download Recouvrance', 'Linux (x86_64, arm64) and macOS (Intel, Apple silicon). Free and open source.'],
+		].map(([slug, title, description]) => ({ params: { slug }, props: { title, description } })),
 		...posts.map((post) => ({
 			params: { slug: post.id },
 			props: { title: post.data.title, description: post.data.description },

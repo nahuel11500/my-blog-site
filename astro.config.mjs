@@ -8,4 +8,8 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
     site: 'https://nahuelcanavy.com',
     integrations: [mdx(), sitemap()],
+    // The Recouvrance page moved to its own section.
+    redirects: {
+        '/projects/recouvrance': '/recouvrance/',
+    },
 });
