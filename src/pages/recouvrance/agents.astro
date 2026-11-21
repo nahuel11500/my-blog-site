@@ -1,0 +1,427 @@
+---
+import Shot from '../../components/recouvrance/Shot.astro';
+import Layout from '../../layouts/Recouvrance.astro';
+import { BASE, TOOLS, doc } from '../../lib/recouvrance';
+
+const title = 'Agents and MCP: Recouvrance';
+const description =
+	'Recouvrance serves MCP on localhost so Claude Code and other agents work on your clusters under rules you set: allow, ask or deny, with approvals, an audit log and a kill switch.';
+
+const steps = [
+	{
+		n: '1',
+		title: 'Connect',
+		text: 'In <strong>Agents</strong>, click <strong>Connect Claude Code</strong>: it registers the server in your Claude Code. Any other MCP client gets its own token and rules.',
+	},
+	{
+		n: '2',
+		title: 'Set the rules',
+		text: 'Start from a preset, then allow, ask or deny by verb, resource, namespace, context and name. Rules can expire, and <em>Test access</em> shows which rule decides.',
+	},
+	{
+		n: '3',
+		title: 'Approve, or not',
+		text: 'A call an <em>Ask me</em> rule covers waits in the window with its key arguments: the command, the whole patch, the replicas. <em>Always allow this</em> adds a narrow rule.',
+	},
+	{
+		n: '4',
+		title: 'See what happened',
+		text: 'The Activity page groups calls by task and shows what each touched. Every call is in an audit log on disk, and a kill switch cuts every agent off at once.',
+	},
+];
+
+const tools = [
+	{
+		group: 'Read and investigate',
+		items: ['find_problems', 'list_resources', 'get_resource', 'describe_resource', 'search', 'get_events', 'get_logs', 'workload_logs', 'get_changes', 'check_reachability', 'check_certificates', 'top_pods', 'top_nodes', 'usage_history', 'get_metrics', 'upgrade_check', 'browse_files'],
+	},
+	{
+		group: 'Helm, GitOps and rollouts',
+		items: ['list_helm_releases', 'helm_history', 'helm_get_values', 'gitops', 'rollout_status', 'rollout_history', 'rollout_restart', 'rollout_undo', 'rollout_pause', 'rollout_resume', 'set_image', 'scale'],
+	},
+	{
+		group: 'Change, with a dry run',
+		items: ['diff_manifest', 'apply_manifest', 'patch_resource', 'delete_resource', 'trigger_cronjob', 'wait_for'],
+	},
+	{
+		group: 'Operate',
+		items: ['exec_command', 'debug_pod', 'port_forward', 'stop_port_forward', 'list_port_forwards', 'cordon_node', 'uncordon_node', 'drain_node'],
+	},
+	{
+		group: 'Know the cluster and your access',
+		items: ['my_permissions', 'can_i', 'list_contexts', 'list_resource_types', 'explain_resource', 'cluster_version'],
+	},
+];
+
+const rulesYaml = `agents:
+  Claude:
+    allow:
+      - get,list,logs *                            # read everything
+      - restart,scale deployments/web-* -n team-*  # names after the slash
+    ask:
+      - patch,apply,delete * --context staging
+    deny:
+      - "* secrets"
+      - "* * --context *prod*"
+      - exec pods until 2026-12-31                 # expires
+    limits: { calls_per_minute: 120 }`;
+
+const mcpJson = `{
+  "mcpServers": {
+    "recouvrance": {
+      "type": "http",
+      "url": "http://127.0.0.1:47070/mcp",
+      "headers": { "Authorization": "Bearer <the agent's token>" }
+    }
+  }
+}`;
+
+const guarantees = [
+	'Anything no rule matches is denied. Deny wins, then Ask me, then Allow.',
+	'Contexts no rule names are never contacted, nor listed to the agent.',
+	'Secret values are masked unless a rule allows <code>reveal</code>.',
+	'Rules changed while a call waits apply to it: it is checked again once approved.',
+	'Names are validated, and what the API server returns must be the object asked for.',
+	'A per-agent rate limit, and requests nobody answers within 2 minutes are refused.',
+];
+---
+
+<Layout title={title} description={description} active="agents" ogImage="/og/recouvrance/agents.png">
+	<section class="hero">
+		<div class="rv-wrap">
+			<p class="kicker">Agents and MCP</p>
+			<h1>Let agents work on your clusters. <em>Keep the rules.</em></h1>
+			<p class="lede">
+				While it runs, Recouvrance serves MCP on localhost. Claude Code and any MCP client get {TOOLS} tools
+				for Kubernetes and Helm, each call checked against rules you set, waiting for you when you ask it to,
+				and written to an audit log.
+			</p>
+		</div>
+	</section>
+
+	<section class="rv-wrap steps">
+		{
+			steps.map((s) => (
+				<article>
+					<span class="n">{s.n}</span>
+					<h2>{s.title}</h2>
+					<p set:html={s.text} />
+				</article>
+			))
+		}
+	</section>
+
+	<section class="section rv-wrap split">
+		<div>
+			<p class="kicker">Approvals</p>
+			<h2 class="section-title">You see the exact request before it runs</h2>
+			<p class="muted">
+				The banner shows the tool, the object and its key arguments. For <code>apply_manifest</code> it lists every
+				object and the YAML that will be applied, Secret values masked. Approve once, for an hour, or always for
+				that narrow case.
+			</p>
+		</div>
+		<Shot name="approval" alt="An agent's request waiting for approval in the Recouvrance window" />
+	</section>
+
+	<section class="section rv-wrap split flip">
+		<Shot name="activity" alt="The Activity page grouping an agent's calls by task" />
+		<div>
+			<p class="kicker">Activity</p>
+			<h2 class="section-title">Every call, grouped by task</h2>
+			<p class="muted">
+				One agent session per group, with what it touched: contexts, namespaces, objects. Filter by writes,
+				denied or failed calls, and open any line to its full arguments and result. The same log is kept in
+				<code>~/.local/share/recouvrance/audit.jsonl</code>.
+			</p>
+		</div>
+	</section>
+
+	<section class="section rv-wrap">
+		<p class="kicker">Rules</p>
+		<h2 class="section-title">Rules that read like RBAC, with an effect</h2>
+		<p class="section-lede">
+			Edit them in the window, or keep them as code in <code>~/.config/recouvrance/rules.yaml</code>, in the spirit of
+			Claude Code's allow, ask and deny lists.
+		</p>
+		<div class="code-pair">
+			<figure>
+				<figcaption>rules.yaml</figcaption>
+				<pre><code>{rulesYaml}</code></pre>
+			</figure>
+			<ul class="checks">
+				{guarantees.map((g) => <li set:html={g} />)}
+			</ul>
+		</div>
+	</section>
+
+	<section class="section rv-wrap">
+		<p class="kicker">{TOOLS} tools</p>
+		<h2 class="section-title">What you would do with kubectl and Helm</h2>
+		<p class="section-lede">
+			Every change supports a dry run, except exec, drain, GitOps actions and port-forwards. Four prompts chain them
+			into read-only workflows: <code>troubleshoot</code>, <code>rightsize</code>, <code>cert-audit</code> and
+			<code>cluster-health</code>.
+		</p>
+		<div class="tools">
+			{
+				tools.map((t) => (
+					<article>
+						<h3>{t.group}</h3>
+						<ul>
+							{t.items.map((i) => (
+								<li>
+									<code>{i}</code>
+								</li>
+							))}
+						</ul>
+					</article>
+				))
+			}
+		</div>
+		<p><a href={doc('agents.md')}>What each tool needs from your rules, in the docs →</a></p>
+	</section>
+
+	<section class="section rv-wrap split">
+		<div>
+			<p class="kicker">Any MCP client</p>
+			<h2 class="section-title">Not only Claude</h2>
+			<p class="muted">
+				Claude Code connects in one click. Other clients get their own agent, token and rules from
+				<em>Agents → Several agents…</em>, and point at the local server. <code>recouvrance serve</code> runs it without
+				the window; there nobody can approve, so calls that would ask are refused.
+			</p>
+			<p class="muted">
+				The in-app assistant is an agent too: it uses your Claude Code login, or an Anthropic API key, under the same
+				rules, approvals and log.
+			</p>
+		</div>
+		<figure class="code">
+			<figcaption>.mcp.json</figcaption>
+			<pre><code>{mcpJson}</code></pre>
+		</figure>
+	</section>
+
+	<section class="section rv-wrap">
+		<aside class="story">
+			<p class="kicker">Why this exists</p>
+			<p>
+				An agent's unreviewed change, merged through over-permissioned CI, took our production cluster down for six
+				hours. Agents are useful on clusters; they need rules a human sets, and a human in the loop for what matters.
+			</p>
+			<p><a href="/blog/first_production_incident_agent/">Read the post-mortem →</a></p>
+		</aside>
+		<p class="note">
+			These rules govern what agents do <em>through Recouvrance</em>. An agent with shell access can still run
+			<code>kubectl</code> with your kubeconfig: block <code>kubectl</code> and <code>helm</code> in its own permissions if
+			Recouvrance should be the only way in.
+		</p>
+	</section>
+
+	<section class="closing">
+		<div class="rv-wrap">
+			<h2>Give your agents a safe way in.</h2>
+			<p class="actions">
+				<a class="button primary" href={`${BASE}/download/`}>Download</a>
+				<a class="button" href={doc('agents.md')}>Read the agents guide</a>
+			</p>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.hero {
+		padding: 4.5em 0 4em;
+		background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(44, 74, 124, 0.9), transparent), var(--navy-deep);
+		color: var(--cream);
+		text-align: center;
+	}
+	.hero h1 {
+		max-width: 14em;
+		margin: 0 auto 0.4em;
+		color: #fff;
+		font-size: 3.2em;
+		line-height: 1.08;
+	}
+	.hero h1 em {
+		color: var(--brass);
+		font-style: normal;
+	}
+	.lede {
+		max-width: 38em;
+		margin: 0 auto;
+		color: rgba(241, 230, 207, 0.88);
+		font-size: 1.12em;
+	}
+
+	.steps {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 1.2em;
+		margin-top: -2em;
+	}
+	.steps article {
+		padding: 1.4em 1.4em 1.2em;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 12px 30px -18px rgba(12, 21, 41, 0.35);
+	}
+	.n {
+		display: inline-grid;
+		place-items: center;
+		width: 1.9em;
+		height: 1.9em;
+		margin-bottom: 0.7em;
+		border-radius: 50%;
+		background: var(--navy);
+		color: var(--brass);
+		font-weight: 700;
+	}
+	.steps h2 {
+		margin-bottom: 0.3em;
+		font-size: 1.2em;
+	}
+	.steps p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.9em;
+	}
+
+	.split {
+		display: grid;
+		grid-template-columns: 5fr 7fr;
+		gap: 3.5em;
+		align-items: center;
+	}
+	.split.flip {
+		grid-template-columns: 7fr 5fr;
+	}
+	.muted {
+		color: var(--muted);
+	}
+
+	.code-pair {
+		display: grid;
+		grid-template-columns: 7fr 5fr;
+		gap: 3em;
+		align-items: start;
+	}
+	figure {
+		margin: 0;
+	}
+	.code-pair figure,
+	.code {
+		border-radius: 12px;
+		overflow: hidden;
+		background: var(--navy-deep);
+		box-shadow: 0 20px 50px -24px rgba(12, 21, 41, 0.5);
+	}
+	figcaption {
+		padding: 0.6em 1.1em;
+		border-bottom: 1px solid rgba(241, 230, 207, 0.1);
+		color: rgba(241, 230, 207, 0.6);
+		font: 0.75em var(--mono);
+	}
+	pre {
+		margin: 0;
+		padding: 1.1em 1.2em;
+		background: none;
+		color: var(--cream);
+		font: 0.74em/1.6 var(--mono);
+		overflow-x: auto;
+	}
+	pre code {
+		padding: 0;
+		background: none;
+		font-size: inherit;
+	}
+
+	.tools {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 1.2em;
+		margin-bottom: 1.5em;
+	}
+	.tools article {
+		padding: 1.3em 1.4em;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: #fff;
+	}
+	.tools h3 {
+		margin-bottom: 0.7em;
+		font-size: 1.05em;
+	}
+	.tools ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4em;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.tools code {
+		display: inline-block;
+		font-size: 0.74em;
+	}
+
+	.story {
+		padding: 1.6em 1.8em;
+		border-left: 4px solid var(--brass);
+		border-radius: 0 12px 12px 0;
+		background: rgba(200, 145, 62, 0.08);
+	}
+	.story p {
+		max-width: 46em;
+		margin: 0 0 0.6em;
+	}
+	.note {
+		max-width: 46em;
+		margin: 1.5em 0 0;
+		color: var(--muted);
+		font-size: 0.88em;
+	}
+
+	.closing {
+		margin-top: 6em;
+		padding: 4.5em 0;
+		background: radial-gradient(ellipse at top, var(--sea), var(--navy) 60%, var(--navy-deep));
+		text-align: center;
+	}
+	.closing h2 {
+		margin-bottom: 1em;
+		color: #fff;
+		font-size: 2.2em;
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.75em;
+		margin: 0;
+	}
+
+	@media (max-width: 960px) {
+		.steps {
+			grid-template-columns: 1fr 1fr;
+		}
+		.split,
+		.split.flip,
+		.code-pair {
+			grid-template-columns: 1fr;
+			gap: 1.8em;
+		}
+		.split.flip > :global(figure) {
+			order: 2;
+		}
+	}
+	@media (max-width: 560px) {
+		.steps {
+			grid-template-columns: 1fr;
+		}
+		.hero h1 {
+			font-size: 2.2em;
+		}
+	}
+</style>
