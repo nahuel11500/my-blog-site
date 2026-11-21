@@ -1,0 +1,258 @@
+---
+import Layout from '../../layouts/Recouvrance.astro';
+import { BASE, GITHUB, cell, comparison, doc } from '../../lib/recouvrance';
+
+const title = 'Recouvrance compared with Aptakube, FreeLens and Headlamp';
+const description =
+	'How Recouvrance compares, feature by feature, with other Kubernetes desktop clients: Aptakube, FreeLens and Headlamp.';
+
+// Read from docs/COMPARISON.md at build time, so the page follows the doc.
+const rows = await comparison();
+const [head, ...body] = rows ?? [[], []];
+
+// "✓ details" → a check mark and the details; "–" → not offered.
+const mark = (text: string) => {
+	if (text === '–' || text === '-') return { kind: 'no', html: '<span class="sr-only">Not offered</span>' };
+	if (text.startsWith('✓')) return { kind: 'yes', html: cell(text.slice(1).trim()) };
+	return { kind: 'text', html: cell(text) };
+};
+---
+
+<Layout title={title} description={description} active="compare" ogImage="/og/recouvrance/compare.png">
+	<section class="hero">
+		<div class="rv-wrap">
+			<p class="kicker">Compare</p>
+			<h1>How Recouvrance compares</h1>
+			<p class="lede">
+				Feature by feature, with the other Kubernetes desktop clients, from their public documentation and issue
+				trackers. Something wrong or out of date? <a href={`${GITHUB}/issues`}>Open an issue</a>.
+			</p>
+		</div>
+	</section>
+
+	<section class="rv-wrap highlights">
+		<article>
+			<h2>Native, no web view</h2>
+			<p>Rust and gpui, the toolkit behind Zed. 174 MB of memory with 23,958 pods listed.</p>
+		</article>
+		<article>
+			<h2>Tells you why</h2>
+			<p>A Problems page across clusters and a diagnosis on every broken pod or workload. The others list; none of them diagnose.</p>
+		</article>
+		<article>
+			<h2>Agents under rules</h2>
+			<p>An MCP server with allow, ask and deny rules, approvals and an audit log, for your own agents.</p>
+		</article>
+	</section>
+
+	<section class="section rv-wrap">
+		{
+			rows ? (
+				<div class="table" role="region" aria-label="Feature comparison" tabindex="0">
+					<table>
+						<thead>
+							<tr>
+								{head.map((h, i) => (
+									<th class={i === head.length - 1 ? 'us' : undefined}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{body.map((r) => (
+								<tr>
+									<th scope="row">{r[0]}</th>
+									{r.slice(1).map((c, i) => {
+										const m = mark(c);
+										return (
+											<td class={`${m.kind}${i === r.length - 2 ? ' us' : ''}`}>
+												<Fragment set:html={m.html} />
+											</td>
+										);
+									})}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			) : (
+				<p>
+					The comparison is in the docs: <a href={doc('COMPARISON.md')}>COMPARISON.md</a>.
+				</p>
+			)
+		}
+		<p class="source">
+			Source: <a href={doc('COMPARISON.md')}>docs/COMPARISON.md</a>, which says when each project was last checked.
+			FreeLens and Headlamp were compared from their docs, not run.
+		</p>
+	</section>
+
+	<section class="section rv-wrap not">
+		<h2>What Recouvrance does not do</h2>
+		<ul class="checks">
+			<li>
+				<strong>UI extensions that draw their own pages.</strong> FreeLens and Headlamp run JavaScript for that.
+				Recouvrance's plugins run commands instead, and the MCP server lets agents and scripts drive it.
+			</li>
+			<li>
+				<strong>A web mode.</strong> Not planned: Recouvrance is a native app on purpose, with no web view and low memory.
+			</li>
+			<li><strong>Windows.</strong> Not yet: Linux and macOS only for now.</li>
+		</ul>
+	</section>
+
+	<section class="closing">
+		<div class="rv-wrap">
+			<h2>See for yourself. It starts read-only.</h2>
+			<p class="actions">
+				<a class="button primary" href={`${BASE}/download/`}>Download</a>
+				<a class="button" href={`${BASE}/`}>Back to the tour</a>
+			</p>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.hero {
+		padding: 4em 0 4.5em;
+		background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(44, 74, 124, 0.9), transparent), var(--navy-deep);
+		color: var(--cream);
+		text-align: center;
+	}
+	.hero h1 {
+		margin: 0 auto 0.4em;
+		color: #fff;
+		font-size: 3em;
+	}
+	.lede {
+		max-width: 38em;
+		margin: 0 auto;
+		color: rgba(241, 230, 207, 0.88);
+	}
+	.lede a {
+		color: var(--brass);
+	}
+	.highlights {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1.2em;
+		margin-top: -2.2em;
+	}
+	.highlights article {
+		padding: 1.4em 1.5em;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 12px 30px -18px rgba(12, 21, 41, 0.35);
+	}
+	.highlights h2 {
+		margin-bottom: 0.3em;
+		font-size: 1.15em;
+	}
+	.highlights p {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.9em;
+	}
+
+	.table {
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: #fff;
+		overflow-x: auto;
+	}
+	table {
+		width: 100%;
+		min-width: 860px;
+		border-collapse: collapse;
+		font-size: 0.8em;
+		line-height: 1.45;
+	}
+	thead th {
+		position: sticky;
+		top: 0;
+		padding: 0.9em 1em;
+		background: var(--navy);
+		color: var(--cream);
+		text-align: left;
+		white-space: nowrap;
+	}
+	thead th.us {
+		background: var(--brass);
+		color: var(--navy-deep);
+	}
+	tbody th,
+	td {
+		padding: 0.75em 1em;
+		border-top: 1px solid var(--line);
+		text-align: left;
+		vertical-align: top;
+	}
+	tbody th {
+		width: 16%;
+		color: var(--ink);
+	}
+	td {
+		width: 18%;
+		color: var(--muted);
+	}
+	td.us {
+		width: 30%;
+		background: rgba(200, 145, 62, 0.07);
+		color: var(--ink);
+	}
+	td.yes::before {
+		content: '✓ ';
+		color: var(--allow);
+		font-weight: 700;
+	}
+	td.no::before {
+		content: '–';
+		color: #b5b0a5;
+	}
+	td :global(code) {
+		font-size: 0.85em;
+		word-break: break-word;
+	}
+	.source {
+		margin-top: 1em;
+		color: var(--muted);
+		font-size: 0.85em;
+	}
+
+	.not h2 {
+		font-size: 1.6em;
+	}
+	.not .checks {
+		max-width: 46em;
+	}
+
+	.closing {
+		margin-top: 6em;
+		padding: 4.5em 0;
+		background: radial-gradient(ellipse at top, var(--sea), var(--navy) 60%, var(--navy-deep));
+		text-align: center;
+	}
+	.closing h2 {
+		margin-bottom: 1em;
+		color: #fff;
+		font-size: 2.2em;
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.75em;
+		margin: 0;
+	}
+
+	@media (max-width: 860px) {
+		.highlights {
+			grid-template-columns: 1fr;
+		}
+	}
+	@media (max-width: 560px) {
+		.hero h1 {
+			font-size: 2.2em;
+		}
+	}
+</style>

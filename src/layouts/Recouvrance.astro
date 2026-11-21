@@ -1,0 +1,451 @@
+---
+// The Recouvrance site: its own navigation and footer, in the app's colors (the navy hull and
+// its brass fittings), on the blog's hosting and fonts. No JavaScript.
+import BaseHead from '../components/BaseHead.astro';
+import { BASE, CHANGELOG, DOCS, GITHUB, LATEST, MEDIA, doc } from '../lib/recouvrance';
+
+interface Props {
+	title: string;
+	description: string;
+	ogImage?: string;
+	active?: 'home' | 'agents' | 'compare' | 'download';
+}
+
+const { title, description, ogImage = '/og/recouvrance.png', active = 'home' } = Astro.props;
+
+const links = [
+	{ href: `${BASE}/#features`, label: 'Features', key: 'features' },
+	{ href: `${BASE}/agents/`, label: 'Agents', key: 'agents' },
+	{ href: `${BASE}/compare/`, label: 'Compare', key: 'compare' },
+	{ href: DOCS, label: 'Docs', key: 'docs' },
+];
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} ogImage={ogImage} />
+	</head>
+	<body class="rv-site">
+		<a class="skip" href="#content">Skip to content</a>
+		<header class="rv-nav">
+			<nav class="rv-wrap">
+				<a class="brand" href={`${BASE}/`}>
+					<img src={`${MEDIA}/logo.svg`} alt="" width="30" height="30" />
+					<span>Recouvrance</span>
+				</a>
+				<div class="links">
+					{
+						links.map((l) => (
+							<a href={l.href} class={active === l.key ? 'active' : undefined}>
+								{l.label}
+							</a>
+						))
+					}
+				</div>
+				<div class="end">
+					<a class="gh" href={GITHUB} aria-label="Recouvrance on GitHub">
+						<svg viewBox="0 0 16 16" aria-hidden="true" width="22" height="22"
+							><path
+								fill="currentColor"
+								d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+							></path></svg
+						>
+					</a>
+					<a class={`cta${active === 'download' ? ' active' : ''}`} href={`${BASE}/download/`}>Download</a>
+				</div>
+			</nav>
+		</header>
+
+		<main id="content" class="rv">
+			<slot />
+		</main>
+
+		<footer class="rv-footer">
+			<div class="rv-wrap cols">
+				<div class="about">
+					<a class="brand" href={`${BASE}/`}>
+						<img src={`${MEDIA}/logo.svg`} alt="" width="30" height="30" />
+						<span>Recouvrance</span>
+					</a>
+					<p>
+						A native Kubernetes desktop client, with a local MCP server for your agents. Open source,
+						MIT or Apache-2.0.
+					</p>
+				</div>
+				<div>
+					<h2>Product</h2>
+					<a href={`${BASE}/#features`}>Features</a>
+					<a href={`${BASE}/agents/`}>Agents and MCP</a>
+					<a href={`${BASE}/compare/`}>Compare</a>
+					<a href={`${BASE}/download/`}>Download</a>
+				</div>
+				<div>
+					<h2>Resources</h2>
+					<a href={DOCS}>Documentation</a>
+					<a href={CHANGELOG}>Changelog</a>
+					<a href={LATEST}>Releases</a>
+					<a href={doc('configuration.md')}>Configuration</a>
+				</div>
+				<div>
+					<h2>Project</h2>
+					<a href={GITHUB}>Source on GitHub</a>
+					<a href={`${GITHUB}/issues`}>Issues and ideas</a>
+					<a href={`${GITHUB}/security/policy`}>Security policy</a>
+					<a href="/blog/first_production_incident_agent/">Why it exists</a>
+				</div>
+			</div>
+			<div class="rv-wrap bottom">
+				<span>Made by <a href="/about/">Nahuel Canavy</a> in Brest, France.</span>
+				<span>No cookies, no trackers, no JavaScript on this site. <a href="/privacy/">Privacy</a>.</span>
+			</div>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	/* Everything here is scoped to the Recouvrance pages by .rv-site. */
+	.rv-site {
+		--navy: #14213d;
+		--navy-deep: #0c1529;
+		--sea: #2c4a7c;
+		--brass: #c8913e;
+		--brass-light: #d9a252;
+		--cream: #f1e6cf;
+		--paper: #fbf8f2;
+		--ink: #1b2436;
+		--muted: #5b6478;
+		--line: #e6e0d4;
+		--allow: #1f7a4d;
+		--ask: #a86a12;
+		--deny: #c0392b;
+		--mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		background: var(--paper);
+		color: var(--ink);
+		font-size: 18px;
+		line-height: 1.6;
+	}
+	.rv-site .rv {
+		width: auto;
+		max-width: none;
+		padding: 0;
+	}
+	.rv-site h1,
+	.rv-site h2,
+	.rv-site h3 {
+		color: var(--ink);
+		letter-spacing: -0.01em;
+	}
+	.rv-site a {
+		color: var(--sea);
+	}
+	.rv-site code {
+		padding: 0.1em 0.35em;
+		border-radius: 4px;
+		background: rgba(20, 33, 61, 0.07);
+		font-family: var(--mono);
+		font-size: 0.86em;
+	}
+	.rv-wrap {
+		width: 1160px;
+		max-width: calc(100% - 2.5em);
+		margin: 0 auto;
+	}
+	.rv-site .section {
+		padding: 5em 0 0;
+	}
+	.rv-site .kicker {
+		margin: 0 0 0.5em;
+		color: var(--brass);
+		font-size: 0.78em;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.rv-site .section-title {
+		max-width: 22em;
+		margin-bottom: 0.4em;
+		font-size: 2.3em;
+		line-height: 1.15;
+	}
+	.rv-site .section-lede {
+		max-width: 40em;
+		margin: 0 0 2em;
+		color: var(--muted);
+		font-size: 1.08em;
+	}
+	.skip {
+		position: absolute;
+		left: -999px;
+	}
+	.skip:focus {
+		left: 1em;
+		top: 1em;
+		z-index: 10;
+		padding: 0.4em 0.8em;
+		background: #fff;
+	}
+
+	/* Buttons */
+	.rv-site .button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		padding: 0.6em 1.3em;
+		border: 1px solid rgba(241, 230, 207, 0.4);
+		border-radius: 9px;
+		color: var(--cream);
+		font-weight: 700;
+		text-decoration: none;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.rv-site .button:hover {
+		border-color: var(--cream);
+		color: #fff;
+	}
+	.rv-site .button.primary {
+		background: var(--brass);
+		border-color: var(--brass);
+		color: var(--navy-deep);
+	}
+	.rv-site .button.primary:hover {
+		background: var(--brass-light);
+		border-color: var(--brass-light);
+	}
+	.rv-site .button.light {
+		border-color: var(--line);
+		background: #fff;
+		color: var(--ink);
+	}
+	.rv-site .button.light:hover {
+		border-color: var(--ink);
+	}
+
+	/* The install command */
+	.rv-site .install {
+		position: relative;
+		margin: 0;
+		padding: 0.95em 1.2em;
+		background: rgba(0, 0, 0, 0.32);
+		border: 1px solid rgba(241, 230, 207, 0.15);
+		border-radius: 10px;
+		color: var(--cream);
+		font: 0.76em/1.55 var(--mono);
+		text-align: left;
+		white-space: pre-wrap;
+		word-break: break-all;
+	}
+	.rv-site .install::before {
+		content: '$ ';
+		color: var(--brass);
+	}
+	.rv-site .install.on-paper {
+		background: var(--navy-deep);
+		border-color: transparent;
+	}
+
+	/* A screenshot in a window frame */
+	.rv-site .window {
+		margin: 0;
+		border-radius: 12px;
+		overflow: hidden;
+		background: var(--navy-deep);
+		box-shadow:
+			0 1px 0 rgba(255, 255, 255, 0.06) inset,
+			0 28px 70px -20px rgba(12, 21, 41, 0.45),
+			0 0 0 1px rgba(12, 21, 41, 0.12);
+		line-height: 0;
+	}
+	.rv-site .window img,
+	.rv-site .window video {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	/* Check lists */
+	.rv-site .checks {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	.rv-site .checks li {
+		position: relative;
+		margin-bottom: 0.65em;
+		padding-left: 1.7em;
+	}
+	.rv-site .checks li::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0.45em;
+		width: 1em;
+		height: 1em;
+		border-radius: 50%;
+		background: var(--brass) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%230c1529' stroke-width='2.4' d='M4 8.5l2.7 2.7L12 5.6'/%3E%3C/svg%3E") center / 80% no-repeat;
+	}
+
+	/* Rule effects */
+	.rv-site .effect {
+		padding: 0.1em 0.5em;
+		border-radius: 4px;
+		color: #fff;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.rv-site .allow {
+		background: var(--allow);
+	}
+	.rv-site .ask {
+		background: var(--ask);
+	}
+	.rv-site .deny {
+		background: var(--deny);
+	}
+</style>
+
+<style>
+	.rv-nav {
+		position: sticky;
+		top: 0;
+		z-index: 5;
+		background: rgba(12, 21, 41, 0.94);
+		backdrop-filter: saturate(1.4) blur(8px);
+		border-bottom: 1px solid rgba(241, 230, 207, 0.08);
+	}
+	.rv-nav nav {
+		display: flex;
+		align-items: center;
+		gap: 2em;
+		height: 60px;
+	}
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 0.55em;
+		color: #fff;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.brand img {
+		border-radius: 7px;
+	}
+	.links {
+		display: flex;
+		gap: 1.6em;
+		flex: 1;
+	}
+	.links a,
+	.gh {
+		color: rgba(241, 230, 207, 0.78);
+		font-size: 0.92em;
+		text-decoration: none;
+	}
+	.links a:hover,
+	.links a.active,
+	.gh:hover {
+		color: #fff;
+	}
+	.links a.active {
+		box-shadow: 0 2px 0 var(--brass);
+	}
+	.end {
+		display: flex;
+		align-items: center;
+		gap: 1.1em;
+	}
+	.gh {
+		display: flex;
+	}
+	.cta {
+		padding: 0.35em 1em;
+		border-radius: 8px;
+		background: var(--brass);
+		color: var(--navy-deep);
+		font-size: 0.9em;
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.cta:hover,
+	.cta.active {
+		background: var(--brass-light);
+	}
+
+	.rv-footer {
+		margin-top: 6em;
+		padding: 3.5em 0 2.5em;
+		background: var(--navy-deep);
+		color: rgba(241, 230, 207, 0.7);
+		font-size: 0.9em;
+	}
+	.cols {
+		display: grid;
+		grid-template-columns: 2fr 1fr 1fr 1fr;
+		gap: 2em;
+	}
+	.cols h2 {
+		margin: 0 0 0.8em;
+		color: #fff;
+		font-size: 0.8em;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.cols a {
+		display: block;
+		margin-bottom: 0.45em;
+		color: rgba(241, 230, 207, 0.75);
+		text-decoration: none;
+	}
+	.cols a:hover {
+		color: #fff;
+	}
+	.about p {
+		max-width: 22em;
+		margin: 0.8em 0 0;
+	}
+	.bottom {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.6em 2em;
+		margin-top: 3em;
+		padding-top: 1.5em;
+		border-top: 1px solid rgba(241, 230, 207, 0.1);
+		font-size: 0.88em;
+	}
+	.bottom a {
+		color: var(--cream);
+	}
+
+	@media (max-width: 860px) {
+		.rv-nav nav {
+			gap: 1em;
+		}
+		.links {
+			gap: 1em;
+		}
+		.cols {
+			grid-template-columns: 1fr 1fr;
+		}
+		.about {
+			grid-column: 1 / -1;
+		}
+	}
+	@media (max-width: 620px) {
+		.rv-nav nav {
+			flex-wrap: wrap;
+			height: auto;
+			padding: 0.6em 0;
+			row-gap: 0.4em;
+		}
+		.links {
+			order: 3;
+			flex-basis: 100%;
+			overflow-x: auto;
+			padding-bottom: 0.3em;
+		}
+		.end {
+			margin-left: auto;
+		}
+	}
+</style>
