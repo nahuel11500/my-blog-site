@@ -1,0 +1,97 @@
+---
+// One large screenshot at a time, with tabs to switch, and no JavaScript: the tabs are radio
+// buttons (arrow keys move between them), and CSS shows the panel of the one checked.
+import Shot from './Shot.astro';
+
+interface Item {
+	label: string;
+	img: string;
+	alt: string;
+	caption: string;
+	height?: number;
+	still?: string;
+}
+
+interface Props {
+	name: string;
+	items: Item[];
+}
+
+const { name, items } = Astro.props;
+---
+
+<div class="tabs" style={`--count: ${items.length}`}>
+	{
+		items.map((item, i) => (
+			<>
+				<input type="radio" name={name} id={`${name}-${i}`} checked={i === 0} />
+				<label for={`${name}-${i}`}>{item.label}</label>
+			</>
+		))
+	}
+	<div class="panels">
+		{
+			items.map((item) => (
+				<div class="panel">
+					<Shot name={item.img} alt={item.alt} height={item.height} still={item.still} sizes="(max-width: 1200px) 100vw, 1160px" />
+					<p set:html={item.caption} />
+				</div>
+			))
+		}
+	</div>
+</div>
+
+<style>
+	.tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+	}
+	input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+	label {
+		padding: 0.4em 1em;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		background: var(--card);
+		color: var(--ink);
+		font-size: 0.9em;
+		font-weight: 700;
+		cursor: pointer;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	label:hover {
+		border-color: var(--brass);
+	}
+	input:checked + label {
+		border-color: var(--brass);
+		background: var(--brass);
+		color: var(--navy-deep);
+	}
+	input:focus-visible + label {
+		outline: 2px solid var(--sea);
+		outline-offset: 2px;
+	}
+	.panels {
+		flex-basis: 100%;
+		margin-top: 0.8em;
+	}
+	.panel {
+		display: none;
+	}
+	.panel p {
+		margin: 0.8em 0 0;
+		color: var(--muted);
+		font-size: 0.95em;
+	}
+	input:nth-of-type(1):checked ~ .panels > .panel:nth-child(1),
+	input:nth-of-type(2):checked ~ .panels > .panel:nth-child(2),
+	input:nth-of-type(3):checked ~ .panels > .panel:nth-child(3),
+	input:nth-of-type(4):checked ~ .panels > .panel:nth-child(4),
+	input:nth-of-type(5):checked ~ .panels > .panel:nth-child(5) {
+		display: block;
+	}
+</style>
