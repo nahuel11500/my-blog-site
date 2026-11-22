@@ -38,7 +38,7 @@ const more = ['Several clusters at once', 'Helm', 'Argo CD and Flux', 'Rollbacks
 
 const faq = [
 	{ q: 'Is it safe to let an agent in?', a: `Agents only get what their rules allow; anything else is denied. <a href="${BASE}/agents/">How agents work</a>.` },
-	{ q: 'How is it different from Lens or Headlamp?', a: `Native, no web view, it diagnoses instead of only listing, and it is built for agents. <a href="${BASE}/compare/">Comparison</a>.` },
+	{ q: 'How is it different from Lens or Headlamp?', a: `Native, with no web view. One Problems page across your clusters, with a diagnosis of each. And agents work under your rules, with approvals and an audit log. <a href="${BASE}/compare/">Comparison</a>.` },
 	{ q: 'Does it send data anywhere?', a: 'No telemetry. Only your clusters, your Prometheus, and Anthropic if you use the assistant.' },
 	{ q: 'Is it free?', a: 'Yes: open source, MIT or Apache-2.0. Linux and macOS; Windows not yet.' },
 ];
@@ -99,12 +99,13 @@ const faq = [
 			<h2>No Electron. No web view. Just Rust on the GPU.</h2>
 			<p class="sub">
 				Built on <a href="https://github.com/zed-industries/zed/tree/main/crates/gpui">gpui</a>, the framework <a href="https://zed.dev/">Zed</a> draws its editor
-				with. Tables are paged on the server, so huge clusters stay light.
+				with. Tables come from the API server's own columns, a page at a time, so the first rows of a huge cluster show
+				in under a second.
 			</p>
 			<dl>
-				<div><dt>0.7 s</dt><dd>to list 20,242 pods</dd></div>
-				<div><dt>8 ms</dt><dd>to draw a frame of that table</dd></div>
-				<div><dt>174 MB</dt><dd>with 23,958 pods, on a production cluster</dd></div>
+				<div><dt>1.4 s</dt><dd>to list all 20,800 pods of a production cluster</dd></div>
+				<div><dt>6 s</dt><dd>to scan that cluster for problems</dd></div>
+				<div><dt>8 ms</dt><dd>to draw a frame of a 20,242-pod table</dd></div>
 				<div><dt>0</dt><dd>browsers inside</dd></div>
 			</dl>
 			<figure class="window recording" data-still={`${MEDIA}/speed-still.webp`}>
@@ -114,9 +115,11 @@ const faq = [
 				</picture>
 			</figure>
 			<p class="note">
-				Release build on a laptop. 20,242 pods on 100 nodes simulated with <a href="https://kwok.sigs.k8s.io/">kwok</a> on a
-				local kind cluster; frames taken from the app as it scrolls, filters and searches, timed off screen. The memory
-				figure is from a real production cluster.
+				Release build on a laptop, November 2026. The list and the scan: a production cluster with about 20,800 pods,
+				median of three runs (the first rows came after 0.7 s). The recording and the frame time: 20,242 pods on 100 nodes
+				simulated with <a href="https://kwok.sigs.k8s.io/">kwok</a> on a local kind cluster; frames taken from the app as it
+				scrolls, filters and searches, timed off screen. How each number was measured is in
+				<a href={doc('COMPARISON.md')}>COMPARISON.md</a>.
 			</p>
 		</div>
 	</section>
