@@ -19,7 +19,9 @@ REF="${1:?usage: $0 <ref, e.g. 7F3A-9C1E>}"
 [[ "$REF" =~ ^[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$ ]] || { echo "not a reference: $REF" >&2; exit 1; }
 REF="${REF^^}"
 
-rows=$(curl -sS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/analytics_engine/sql" \
+# -f: an API error (expired token, missing permission) fails the script
+# instead of reaching jq as a row of empty fields.
+rows=$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/analytics_engine/sql" \
 	-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
 	--data "
 		SELECT timestamp, blob3 AS country, blob2 AS referrer, blob4 AS host, blob6 AS bot

@@ -100,10 +100,10 @@ test('flags automated clients by user-agent or datacenter network', () => {
 });
 
 /** Runs the Worker against fake bindings and returns what it wrote. */
-async function run(request: Request, asset: () => Response = html) {
+async function run(request: Request, asset: (request: Request) => Response = () => html()) {
 	const points: AnalyticsEngineDataPoint[] = [];
 	const env = {
-		ASSETS: { fetch: async () => asset() },
+		ASSETS: { fetch: async (r: Request) => asset(r) },
 		PAGEVIEWS: { writeDataPoint: (p: AnalyticsEngineDataPoint) => points.push(p) },
 	};
 	const response = await worker.fetch(request as never, env as never);
@@ -172,6 +172,7 @@ test('serves the CV stamped, uncached, and records the reference stamped in it',
 	const ref = points[0].blobs?.[6] as string;
 
 	assert.equal(response.headers.get('cache-control'), 'private, no-store');
+	assert.equal(response.headers.get('accept-ranges'), 'none');
 	assert.match(response.headers.get('content-disposition') ?? '', /^attachment; filename="nahuel_canavy_cv_\d{4}-\d{2}-\d{2}\.pdf"$/);
 	assert.match(ref, /^[0-9A-F]{4}-[0-9A-F]{4}$/);
 	assert.ok(body.includes(`ref ${ref}`));
@@ -192,8 +193,21 @@ test('never serves the CV without its stamp', async () => {
 	assert.equal(points.length, 0);
 });
 
-test('answers HEAD without a body or a download event', async () => {
-	const { response, points } = await run(new Request('https://nahuelcanavy.com/cv.pdf', { method: 'HEAD' }), pdfAsset);
+test('serves a whole copy to a Range request, one copy and one event', async () => {
+	const { response, points } = await run(cvDownload({ range: 'bytes=0-99' }), pdfAsset);
+	assert.equal(response.status, 200);
+	assert.equal((await response.arrayBuffer()).byteLength, fakePdf().length);
+	assert.equal(points.length, 1);
+});
+
+test('answers HEAD without a body or a download event, and without reading the PDF', async () => {
+	let method = '';
+	const asset = (request: Request) => {
+		method = request.method;
+		return new Response(null, { headers: { 'content-type': 'application/pdf' } });
+	};
+	const { response, points } = await run(new Request('https://nahuelcanavy.com/cv.pdf', { method: 'HEAD' }), asset);
+	assert.equal(method, 'HEAD');
 	assert.equal(response.status, 200);
 	assert.equal(response.headers.get('content-type'), 'application/pdf');
 	assert.equal(points.length, 0);

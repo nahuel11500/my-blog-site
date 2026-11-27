@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "wrangler dev",
-    "test": "node --test --disable-warning=ExperimentalWarning 'worker/*.test.ts'",
+    "test": "node --test --disable-warning=ExperimentalWarning 'worker/*.test.ts' 'src/lib/*.test.ts'",
     "deploy": "astro build && wrangler deploy",
     "astro": "astro"
   },

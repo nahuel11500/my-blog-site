@@ -38,7 +38,9 @@ READ="blob5 = 'read'"
 # sum(_sample_interval), not count(): it is the sampling weight, so the total
 # stays true even if Analytics Engine sampled under load.
 query() {
-	curl -sS "$API" \
+	# -f: an API error (expired token, missing permission) fails the script
+	# instead of reaching jq as rows of empty fields.
+	curl -fsS "$API" \
 		-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
 		--data "$1 FORMAT JSONEachRow"
 }

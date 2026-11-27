@@ -11,6 +11,7 @@ import {
 } from 'pdf-lib';
 import { FOOTER_DEFAULT, META_DEFAULT } from '../../worker/cv-stamp';
 import { cv, parse, type Segment } from '../data/cv';
+import { wrap } from './wrap';
 
 // Renders src/data/cv.ts as an A4 PDF, at build time. The Worker stamps each
 // download in place (worker/cv-stamp.ts), so this file only has to leave the
@@ -90,24 +91,14 @@ class Writer {
 
 	/** Wraps rich text to `width`, starting at `x`. */
 	paragraph(segments: Segment[], x: number, width: number, size = BODY, color = TEXT) {
-		const words: Word[] = segments.flatMap((s) =>
+		const fragments: Word[] = segments.flatMap((s) =>
 			s.text
 				.split(/(?<= )/)
 				.filter((w) => w !== '')
 				.map((w) => ({ text: w, font: s.bold ? this.fonts.bold : this.fonts.regular, href: s.href })),
 		);
 
-		const lines: Word[][] = [[]];
-		let used = 0;
-		for (const word of words) {
-			const w = word.font.widthOfTextAtSize(word.text.trimEnd(), size);
-			if (used + w > width && lines.at(-1)!.length > 0) {
-				lines.push([]);
-				used = 0;
-			}
-			lines.at(-1)!.push(word);
-			used += word.font.widthOfTextAtSize(word.text, size);
-		}
+		const lines = wrap(fragments, width, size);
 
 		for (const line of lines) {
 			this.keep(LEADING);

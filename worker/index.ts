@@ -152,7 +152,8 @@ async function cv(request: Request, env: Env, url: URL): Promise<Response> {
 	}
 
 	// A plain request: the client's conditional headers must not turn this into a 304.
-	const asset = await env.ASSETS.fetch(new Request(url.toString()));
+	// HEAD only asks whether the CV is there, so the PDF itself is not fetched.
+	const asset = await env.ASSETS.fetch(new Request(url.toString(), { method: request.method }));
 	if (!asset.ok) return asset;
 
 	const now = new Date();
@@ -161,6 +162,11 @@ async function cv(request: Request, env: Env, url: URL): Promise<Response> {
 		'content-disposition': `attachment; filename="nahuel_canavy_cv_${now.toISOString().slice(0, 10)}.pdf"`,
 		'cache-control': 'private, no-store',
 		'x-robots-tag': 'noindex, nofollow',
+		// Every response is a whole, freshly stamped copy, and the one recorded: no
+		// ranges, so a download manager can't split one download into several
+		// requests, each with its own reference. A Range header is ignored (a 200
+		// with the full body is a valid answer to it).
+		'accept-ranges': 'none',
 	};
 	if (request.method === 'HEAD') return new Response(null, { headers });
 
