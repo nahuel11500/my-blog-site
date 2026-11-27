@@ -4,14 +4,10 @@ interface Props {
 }
 
 const { date } = Astro.props;
+// ISO 8601, like a log line. Local fields, because frontmatter dates are parsed as local
+// midnight: toISOString() would move them to the day before east of UTC.
+const pad = (n: number) => String(n).padStart(2, '0');
+const iso = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 ---
 
-<time datetime={date.toISOString()}>
-	{
-		date.toLocaleDateString('en-us', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-		})
-	}
-</time>
+<time datetime={iso}>{iso}</time>

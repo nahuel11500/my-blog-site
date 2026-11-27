@@ -1,90 +1,219 @@
 ---
 import type { CollectionEntry } from 'astro:content';
-import BaseHead from '../components/BaseHead.astro';
-import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
-import Header from '../components/Header.astro';
+import Site from './Site.astro';
 
-type Props = CollectionEntry<'blog'>['data'] & { ogImage?: string; slug?: string };
+type Link = { href: string; title: string };
 
-const { title, description, pubDate, updatedDate, ogImage, slug } = Astro.props;
+type Props = CollectionEntry<'blog'>['data'] & {
+	ogImage?: string;
+	slug?: string;
+	minutes?: number;
+	older?: Link;
+	newer?: Link;
+};
+
+const { title, description, pubDate, updatedDate, ogImage, slug, minutes, older, newer } =
+	Astro.props;
 ---
 
-<html lang="en">
-	<head>
-		<BaseHead title={title} description={description} ogImage={ogImage} />
-		<style>
-			.prose {
-				color: rgb(var(--gray-dark));
-			}
-			.title {
-				margin-bottom: 1em;
-				padding: 1em 0;
-				text-align: center;
-				line-height: 1;
-			}
-			.title h1 {
-				margin: 0 0 0.5em 0;
-			}
-			.date {
-				margin-bottom: 0.5em;
-				color: rgb(var(--gray));
-			}
-			.last-updated-on {
-				font-style: italic;
-			}
-			/* Invisible, but laid out: browsers skip lazy images that are display:none. */
-			.read-marker {
-				display: block;
-				width: 1px;
-				height: 1px;
-				opacity: 0;
-			}
-		</style>
-	</head>
+<Site title={title} description={description} ogImage={ogImage} back={slug ? '/blog/' : '/'}>
+	<article>
+		<header>
+			<h1>{title}</h1>
+			<p class="meta">
+				<FormattedDate date={pubDate} />
+				{
+					updatedDate && (
+						<>
+							· updated <FormattedDate date={updatedDate} />
+						</>
+					)
+				}
+				{minutes && <>· {minutes} min read</>}
+			</p>
+		</header>
 
-	<body>
-		<Header />
-		<main>
-			<article>
-				<div class="prose">
-					<div class="title">
-						<div class="date">
-							<FormattedDate date={pubDate} />
-							{
-								updatedDate && (
-									<div class="last-updated-on">
-										Last updated on <FormattedDate date={updatedDate} />
-									</div>
-								)
-							}
-						</div>
-						<h1>{title}</h1>
-						<hr />
-					</div>
-					<slot />
-					{
-						/*
-						 * Read counter: browsers fetch a lazy image only when the reader
-						 * scrolls near it, so this request means "reached the end of the
-						 * post". See worker/index.ts and /privacy/.
-						 */
-						slug && (
-							<img
-								class="read-marker"
-								src={`/read/${slug}/`}
-								alt=""
-								width="1"
-								height="1"
-								loading="lazy"
-								decoding="async"
-								aria-hidden="true"
-							/>
-						)
-					}
-				</div>
-			</article>
-		</main>
-		<Footer />
-	</body>
-</html>
+		<div class="prose">
+			<slot />
+		</div>
+
+		{
+			slug && (
+				<nav class="next" aria-label="More posts">
+					{older && (
+						<a href={older.href}>
+							<span>Older</span>
+							{older.title}
+						</a>
+					)}
+					{newer && (
+						<a class="newer" href={newer.href}>
+							<span>Newer</span>
+							{newer.title}
+						</a>
+					)}
+				</nav>
+			)
+		}
+		{
+			/*
+			 * Read counter: browsers fetch a lazy image only when the reader
+			 * scrolls near it, so this request means "reached the end of the
+			 * post". See worker/index.ts and /privacy/.
+			 */
+			slug && (
+				<img
+					class="read-marker"
+					src={`/read/${slug}/`}
+					alt=""
+					width="1"
+					height="1"
+					loading="lazy"
+					decoding="async"
+					aria-hidden="true"
+				/>
+			)
+		}
+	</article>
+</Site>
+
+<style>
+	header {
+		margin-bottom: 2.5rem;
+	}
+	h1 {
+		margin-bottom: 0.5rem;
+	}
+	.meta {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.875rem;
+	}
+	/* Older and newer posts, side by side; stacked on phones. */
+	.next {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5rem;
+		margin-top: 4rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--line);
+	}
+	.next a {
+		color: var(--strong);
+		font-size: 0.95rem;
+		line-height: 1.45;
+		text-decoration: none;
+	}
+	.next a:hover {
+		color: var(--soft);
+	}
+	.next span {
+		display: block;
+		margin-bottom: 0.2rem;
+		color: var(--muted);
+		font-size: 0.8rem;
+	}
+	.next .newer {
+		grid-column: 2;
+		text-align: right;
+	}
+	@media (max-width: 640px) {
+		.next {
+			grid-template-columns: 1fr;
+		}
+		.next .newer {
+			grid-column: auto;
+			text-align: left;
+		}
+	}
+	/* Invisible, but laid out: browsers skip lazy images that are display:none. */
+	.read-marker {
+		display: block;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+	}
+
+	/* The post itself, from Markdown. */
+	.prose {
+		line-height: 1.75;
+	}
+	.prose :global(:is(h1, h2)) {
+		margin: 2.5rem 0 1.25rem;
+		font-size: 1.25rem;
+	}
+	.prose :global(h3) {
+		margin: 2rem 0 1rem;
+		font-size: 1.075rem;
+	}
+	.prose :global(h4) {
+		margin: 1.75rem 0 0.75rem;
+		font-size: 1rem;
+	}
+	.prose > :global(:first-child) {
+		margin-top: 0;
+	}
+	/* Each heading links to itself; a "#" shows in the margin on hover. */
+	.prose :global(:is(h2, h3, h4)) {
+		scroll-margin-top: 1.5rem;
+	}
+	.prose :global(.heading-link) {
+		position: relative;
+		color: inherit;
+		text-decoration: none;
+	}
+	.prose :global(.heading-link::before) {
+		content: '#';
+		position: absolute;
+		right: 100%;
+		padding-right: 0.5ch;
+		color: var(--muted);
+		font-weight: 400;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	.prose :global(.heading-link:is(:hover, :focus-visible)::before) {
+		opacity: 1;
+	}
+	/* Code and tables need room: they reach past the text column, up to 48rem, centered on it.
+	   On phones the column already fills the screen, and they stay in it. */
+	.prose :global(:is(pre, .table-container, table:not(.custom-table))) {
+		margin-inline: calc(50% - min(24rem, 50vw - 1.5rem));
+	}
+	.prose :global(:is(ul, ol)) {
+		margin: 0 0 1.25rem;
+		padding-left: 1.25em;
+	}
+	.prose :global(li) {
+		margin-bottom: 0.35em;
+		padding-left: 0.2em;
+	}
+	.prose :global(li::marker) {
+		color: var(--muted);
+	}
+	.prose :global(li > :is(ul, ol)) {
+		margin: 0.35em 0 0;
+	}
+	.prose :global(table:not(.custom-table)) {
+		display: block;
+		width: auto;
+		margin-block: 1.75rem;
+		overflow-x: auto;
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+	.prose :global(table:not(.custom-table) :is(th, td)) {
+		padding: 0.5rem 1rem 0.5rem 0;
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+	}
+	.prose :global(table:not(.custom-table) th) {
+		color: var(--strong);
+		font-weight: 500;
+	}
+	.prose :global(img) {
+		height: auto;
+		border-radius: 6px;
+	}
+</style>

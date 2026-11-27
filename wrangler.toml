@@ -9,6 +9,8 @@ enabled = true
 [assets]
 directory = "./dist"
 binding = "ASSETS"
+# Unknown paths get dist/404.html, with a 404 status.
+not_found_handling = "404-page"
 # Negative patterns win, so the Worker runs only for page routes. Everything
 # listed here is served straight from the edge without invoking it.
 run_worker_first = [

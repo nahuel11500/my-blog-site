@@ -33,8 +33,14 @@ const headers = (): Record<string, string> => {
 	return h;
 };
 
-/** The latest release and its files, or null when GitHub can't be reached: the build must not fail for it. */
-export async function latestRelease(): Promise<LatestRelease | null> {
+/** The latest release and its files, or null when GitHub can't be reached: the build must not fail for it.
+ *  Fetched once per build, however many pages ask. */
+export function latestRelease(): Promise<LatestRelease | null> {
+	return (latest ??= fetchLatestRelease());
+}
+let latest: Promise<LatestRelease | null> | undefined;
+
+async function fetchLatestRelease(): Promise<LatestRelease | null> {
 	try {
 		const response = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: headers() });
 		if (!response.ok) return null;
