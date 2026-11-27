@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { FOOTER_DEFAULT, META_DEFAULT, pad, STAMP_LENGTH, stamp, stampPdf } from './cv-stamp.ts';
 import worker, { botReason, isPageView, isRead, referrerHost } from './index.ts';
 
 const html = (status = 200) =>
@@ -99,10 +100,10 @@ test('flags automated clients by user-agent or datacenter network', () => {
 });
 
 /** Runs the Worker against fake bindings and returns what it wrote. */
-async function run(request: Request) {
+async function run(request: Request, asset: (request: Request) => Response = () => html()) {
 	const points: AnalyticsEngineDataPoint[] = [];
 	const env = {
-		ASSETS: { fetch: async () => html() },
+		ASSETS: { fetch: async (r: Request) => asset(r) },
 		PAGEVIEWS: { writeDataPoint: (p: AnalyticsEngineDataPoint) => points.push(p) },
 	};
 	const response = await worker.fetch(request as never, env as never);
@@ -111,14 +112,14 @@ async function run(request: Request) {
 
 test('records a view with its event and bot fields', async () => {
 	const { points } = await run(navigation({ 'user-agent': CHROME }));
-	assert.deepEqual(points[0].blobs, ['/blog/linux_process/', 'direct', 'unknown', 'nahuelcanavy.com', 'view', '']);
+	assert.deepEqual(points[0].blobs, ['/blog/linux_process/', 'direct', 'unknown', 'nahuelcanavy.com', 'view', '', '']);
 });
 
 test('records a read against the post path and always answers with the image', async () => {
 	const read = await run(beaconFetch({ 'user-agent': CHROME }));
 	assert.equal(read.response.headers.get('content-type'), 'image/gif');
 	assert.equal(read.response.headers.get('cache-control'), 'private, max-age=86400');
-	assert.deepEqual(read.points[0].blobs, ['/blog/linux_process/', 'n/a', 'unknown', 'nahuelcanavy.com', 'read', '']);
+	assert.deepEqual(read.points[0].blobs, ['/blog/linux_process/', 'n/a', 'unknown', 'nahuelcanavy.com', 'read', '', '']);
 
 	const bare = await run(new Request(readUrl));
 	assert.equal(bare.response.status, 200);
@@ -128,4 +129,86 @@ test('records a read against the post path and always answers with the image', a
 test('keeps bot traffic, labelled, so the filter can be checked', async () => {
 	const { points } = await run(navigation({ 'user-agent': 'HeadlessChrome/141' }));
 	assert.equal(points[0].blobs?.[5], 'ua');
+});
+
+const bytes = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
+const text = (b: Uint8Array) => String.fromCharCode(...b);
+
+/** A stand-in for the built PDF: two pages' footers and the metadata. */
+const fakePdf = () =>
+	bytes(`%PDF-1.7 ... (${FOOTER_DEFAULT}) Tj ... (${FOOTER_DEFAULT}) Tj ... /Subject (${META_DEFAULT}) ... %%EOF`);
+
+test('stamps the footer with the date and the metadata with the ref, without moving a byte', () => {
+	const pdf = fakePdf();
+	const s = stamp(new Date('2026-11-24T14:03:59Z'), '7F3A-9C1E');
+	const out = text(stampPdf(pdf, s));
+
+	assert.equal(s.footer, 'Downloaded on 24 November 2026, latest at nahuelcanavy.com/cv');
+	assert.equal(s.meta, 'Downloaded from nahuelcanavy.com/cv on 2026-11-24 14:03 UTC - ref 7F3A-9C1E');
+	assert.equal(out.length, pdf.length);
+	assert.equal(out.split(`(${pad(s.footer)}) Tj`).length - 1, 2);
+	assert.ok(out.includes(`/Subject (${pad(s.meta)})`));
+	assert.equal(out.includes(FOOTER_DEFAULT) || out.includes(META_DEFAULT), false);
+	assert.equal(text(pdf).includes(FOOTER_DEFAULT), true, 'the input is left alone');
+});
+
+test('refuses stamps that would break the PDF string or its length', () => {
+	assert.throws(() => pad('x'.repeat(STAMP_LENGTH + 1)));
+	assert.throws(() => pad('a (parenthesis) closes the string'));
+	const s = stamp(new Date(), '7F3A-9C1E');
+	assert.throws(() => stampPdf(bytes('%PDF no placeholder'), s));
+	assert.throws(() => stampPdf(bytes(`%PDF (${FOOTER_DEFAULT}) only the footer`), s));
+});
+
+const pdfAsset = () => new Response(fakePdf(), { headers: { 'content-type': 'application/pdf' } });
+const cvDownload = (headers: Record<string, string> = {}) =>
+	new Request('https://nahuelcanavy.com/cv.pdf', {
+		headers: { 'sec-fetch-mode': 'navigate', 'sec-fetch-dest': 'document', 'user-agent': CHROME, ...headers },
+	});
+
+test('serves the CV stamped, uncached, and records the reference stamped in it', async () => {
+	const { response, points } = await run(cvDownload({ referer: 'https://nahuelcanavy.com/cv/' }), pdfAsset);
+	const body = text(new Uint8Array(await response.arrayBuffer()));
+	const ref = points[0].blobs?.[6] as string;
+
+	assert.equal(response.headers.get('cache-control'), 'private, no-store');
+	assert.equal(response.headers.get('accept-ranges'), 'none');
+	assert.match(response.headers.get('content-disposition') ?? '', /^attachment; filename="nahuel_canavy_cv_\d{4}-\d{2}-\d{2}\.pdf"$/);
+	assert.match(ref, /^[0-9A-F]{4}-[0-9A-F]{4}$/);
+	assert.ok(body.includes(`ref ${ref}`));
+	assert.equal(body.includes(FOOTER_DEFAULT) || body.includes(META_DEFAULT), false);
+	assert.deepEqual(points[0].blobs, ['/cv.pdf', 'internal', 'unknown', 'nahuelcanavy.com', 'download', '', ref]);
+});
+
+test('gives each download its own reference', async () => {
+	const a = await run(cvDownload(), pdfAsset);
+	const b = await run(cvDownload(), pdfAsset);
+	assert.notEqual(a.points[0].blobs?.[6], b.points[0].blobs?.[6]);
+});
+
+test('never serves the CV without its stamp', async () => {
+	const unstamped = () => new Response(bytes('%PDF no placeholder'), { headers: { 'content-type': 'application/pdf' } });
+	const { response, points } = await run(cvDownload(), unstamped);
+	assert.equal(response.status, 503);
+	assert.equal(points.length, 0);
+});
+
+test('serves a whole copy to a Range request, one copy and one event', async () => {
+	const { response, points } = await run(cvDownload({ range: 'bytes=0-99' }), pdfAsset);
+	assert.equal(response.status, 200);
+	assert.equal((await response.arrayBuffer()).byteLength, fakePdf().length);
+	assert.equal(points.length, 1);
+});
+
+test('answers HEAD without a body or a download event, and without reading the PDF', async () => {
+	let method = '';
+	const asset = (request: Request) => {
+		method = request.method;
+		return new Response(null, { headers: { 'content-type': 'application/pdf' } });
+	};
+	const { response, points } = await run(new Request('https://nahuelcanavy.com/cv.pdf', { method: 'HEAD' }), asset);
+	assert.equal(method, 'HEAD');
+	assert.equal(response.status, 200);
+	assert.equal(response.headers.get('content-type'), 'application/pdf');
+	assert.equal(points.length, 0);
 });

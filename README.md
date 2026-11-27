@@ -28,6 +28,7 @@ tracking anyone. Readers download nothing for it; the Worker counts as it serves
 |--------|---------|-------|
 | `view` | A browser navigates to a page (`Sec-Fetch-Mode: navigate`, `Sec-Fetch-Dest: document`, HTML, 200). | Someone opened the page. |
 | `read` | A browser loads `/read/<slug>/`, the lazy 1×1 image at the end of each post, from that post. | Someone scrolled near the end. |
+| `download` | Any `GET /cv.pdf`. | Someone downloaded the CV. The copy carries the reference recorded with the event. |
 
 Why `read`: page views over-count. Over the 90 days before this was added,
 about half the views came from crawlers that open every menu link within a
@@ -70,8 +71,9 @@ One Analytics Engine dataset, `blog_pageviews`, one data point per event:
 | `blob2` | Referrer host, `direct` or `internal`. `n/a` for a `read`. |
 | `blob3` | Country code. |
 | `blob4` | Serving host: previews and `*.workers.dev` write here too. |
-| `blob5` | Event: `view` or `read`. Empty on rows written before Nov 2026. |
+| `blob5` | Event: `view`, `read` or `download`. Empty on rows written before Nov 2026. |
 | `blob6` | Bot verdict: `''` (looks like a person), `ua` or `asn`. Empty on older rows, which are unfiltered. |
+| `blob7` | For a `download`, the reference stamped on that copy. Empty otherwise. |
 | `index1`| Path, for sampling. |
 
 Never recorded: IP, user-agent, ASN, cookies, visitor or session IDs, full
@@ -82,3 +84,35 @@ referring URLs. Free plan: 100k data points a day, 3 months of retention.
 `./scripts/stats.sh [days]` shows, for people only: posts opened vs read to the
 end, top pages, referrers, countries, hosts, and views and reads per day. It
 also shows how much was filtered as bots, and why.
+
+## CV
+
+`/cv/` and `/cv.pdf` are both rendered from `src/data/cv.ts`, so the page and the
+PDF never disagree. It is public, so it holds nothing personal: no email, no
+phone, no address, no photo, and no company figures (fleet size, team counts,
+internal volumes): percentages and ratios only. It is deliberately low-key: linked
+only from `/about/`, no call to get in touch, `noindex` and left out of the
+sitemap.
+
+The PDF is built once (`src/pages/cv.pdf.ts`, with pdf-lib at build time). The
+Worker stamps every download. The footer of each page stays soft, a date and
+where the latest version is; the reference only goes in the PDF's metadata
+(Subject), where a reader won't see it but `pdfinfo` will:
+
+```
+footer   Downloaded on 24 November 2026, latest at nahuelcanavy.com/cv
+Subject  Downloaded from nahuelcanavy.com/cv on 2026-11-24 14:03 UTC - ref 7F3A-9C1E
+```
+
+Each stamp replaces a placeholder of exactly the same length, written as plain
+bytes in the PDF, so no offset moves and the file stays valid: no PDF library
+in the Worker and next to no CPU per download (`worker/cv-stamp.ts`). If the
+placeholders are missing, the Worker answers 503 rather than serve an unstamped
+copy. The reference is recorded with the `download` event (`blob7`):
+`./scripts/cv-ref.sh 7F3A-9C1E` says when and from which country that copy was
+downloaded, for as long as Analytics Engine keeps it (3 months).
+
+What this does and doesn't do: anyone can still retype the CV, edit the PDF or
+strip its metadata. The stamp dates a forwarded copy, and points whoever holds
+it to the current version here.
+

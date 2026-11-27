@@ -1,0 +1,13 @@
+---
+import { parse } from '../data/cv';
+
+// Renders the **bold** and [label](url) marks of src/data/cv.ts.
+const { text } = Astro.props as { text: string };
+---
+
+{
+	parse(text).map((s) => {
+		const inner = s.href ? <a href={s.href}>{s.text}</a> : s.text;
+		return s.bold ? <strong>{inner}</strong> : inner;
+	})
+}
