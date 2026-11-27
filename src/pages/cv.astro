@@ -1,0 +1,170 @@
+---
+import RichText from '../components/RichText.astro';
+import { cv } from '../data/cv';
+import Site from '../layouts/Site.astro';
+---
+
+<Site
+	title={`${cv.name} – Experience`}
+	description="What I have worked on: Kubernetes, bare metal, cost, data and AI agent platforms."
+	back="/about/"
+>
+	<meta slot="head" name="robots" content="noindex" />
+
+	<section>
+		<h1>{cv.name}</h1>
+		<p class="intro">{cv.tagline}</p>
+		<p class="download">
+			<a href="/cv.pdf" download>Download as PDF</a>
+			<span>The PDF carries the date it was downloaded. The latest version is always on this page.</span>
+		</p>
+	</section>
+
+	<section aria-labelledby="experience">
+		<h2 class="section-title" id="experience">Experience</h2>
+		{
+			cv.experience.map((role) => (
+				<article class="entry">
+					<div class="entry-head">
+						<h3>
+							{role.title} · {role.company}
+						</h3>
+						<span class="meta">{role.period}</span>
+					</div>
+					<p class="meta">{role.location}</p>
+					<ul>
+						{role.bullets.map((b) => (
+							<li>
+								<RichText text={b} />
+							</li>
+						))}
+					</ul>
+				</article>
+			))
+		}
+	</section>
+
+	<section aria-labelledby="education">
+		<h2 class="section-title" id="education">Education</h2>
+		{
+			cv.education.map((school) => (
+				<article class="entry">
+					<div class="entry-head">
+						<h3>{school.name}</h3>
+						<span class="meta">{school.period}</span>
+					</div>
+					<p class="meta">
+						{school.degree}, {school.location}
+					</p>
+					<ul>
+						{school.bullets.map((b) => (
+							<li>
+								<RichText text={b} />
+							</li>
+						))}
+					</ul>
+				</article>
+			))
+		}
+	</section>
+
+	<section aria-labelledby="skills">
+		<h2 class="section-title" id="skills">Skills</h2>
+		<dl class="skills">
+			{
+				cv.skills.map((g) => (
+					<div>
+						<dt>{g.label}</dt>
+						<dd>
+							<RichText text={g.items.join(', ')} />
+						</dd>
+					</div>
+				))
+			}
+		</dl>
+	</section>
+
+	<section aria-labelledby="projects">
+		<h2 class="section-title" id="projects">Projects</h2>
+		<ul>
+			{
+				cv.projects.map((p) => (
+					<li>
+						<RichText text={p} />
+					</li>
+				))
+			}
+		</ul>
+	</section>
+</Site>
+
+<style>
+	section + section {
+		margin-top: 3.5rem;
+	}
+	.download {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 1rem;
+		margin: 1.25rem 0 0;
+		font-size: 0.875rem;
+	}
+	.download a {
+		padding: 0.35rem 0.8rem;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		text-decoration: none;
+	}
+	.download a:hover {
+		border-color: var(--strong);
+	}
+	.download span {
+		color: var(--muted);
+	}
+	.entry + .entry {
+		margin-top: 2rem;
+	}
+	.entry-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0 1rem;
+	}
+	h3 {
+		font-size: 1rem;
+	}
+	.meta {
+		margin: 0;
+		color: var(--muted);
+		font-size: 0.875rem;
+	}
+	ul {
+		margin: 0.75rem 0 0;
+		padding-left: 1.1rem;
+	}
+	li + li {
+		margin-top: 0.5rem;
+	}
+	li::marker {
+		color: var(--muted);
+	}
+	.skills {
+		margin: 0;
+	}
+	.skills div + div {
+		margin-top: 0.35rem;
+	}
+	.skills dt {
+		display: inline;
+		color: var(--soft);
+	}
+	.skills dt::after {
+		content: ': ';
+	}
+	.skills dd {
+		display: inline;
+		margin: 0;
+	}
+</style>

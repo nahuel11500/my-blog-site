@@ -34,7 +34,11 @@ function headingLinks() {
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://nahuelcanavy.com',
-	integrations: [mdx(), sitemap()],
+	integrations: [
+		mdx(),
+		// The CV is linked from the site, but kept out of search results.
+		sitemap({ filter: (page) => !page.endsWith('/cv/') }),
+	],
 	markdown: {
 		rehypePlugins: [rehypeHeadingIds, headingLinks],
 	},

@@ -6,7 +6,7 @@ import Layout from '../layouts/BlogPost.astro';
 	title="Privacy"
 	description="What this blog measures, what it deliberately doesn't, and how you can check."
 	pubDate={new Date('July 14 2026')}
-	updatedDate={new Date('Nov 21 2026')}
+	updatedDate={new Date('Nov 24 2026')}
 >
 	<p>
 		This site has no cookies, no trackers and no analytics script. The blog has no JavaScript at all;
@@ -25,7 +25,7 @@ import Layout from '../layouts/BlogPost.astro';
 		<li>The path you visited, e.g. <code>/blog/linux_process/</code></li>
 		<li>The <em>host</em> that linked you here, e.g. <code>news.ycombinator.com</code></li>
 		<li>A country code, e.g. <code>FR</code></li>
-		<li>Whether a page was opened, or a post was read to the end</li>
+		<li>Whether a page was opened, a post was read to the end, or my CV was downloaded</li>
 		<li>Whether the visit looked automated, and why: a bot user agent, or a datacenter network</li>
 		<li>The time</li>
 	</ul>
@@ -57,6 +57,16 @@ import Layout from '../layouts/BlogPost.astro';
 		That memory stays in your browser: the server never sees anything that tells readers apart.
 	</p>
 
+	<h2>Downloading my CV</h2>
+	<p>
+		Each copy of <a href="/cv/">my CV</a> is stamped, as it is served: the date in its footer, and
+		the time and a random reference such as <code>7F3A-9C1E</code> in the file's metadata. The same
+		reference is recorded with the download,
+		alongside the fields above. It says when a copy was downloaded and from which country, so a
+		copy that turns up somewhere can be checked. It says nothing about who downloaded it: the
+		reference is random, and nothing else about you is kept.
+	</p>
+
 	<h2>Bots</h2>
 	<p>
 		Crawlers and headless browsers can look a lot like people. Before counting anything, the server
@@ -73,6 +83,9 @@ import Layout from '../layouts/BlogPost.astro';
 			worker/index.ts
 		</a>.
 		You can also open the network tab: at the end of a post you'll see one extra request,
-		<code>/read/&lt;post&gt;/</code>, a 42-byte transparent image. That's all there is.
+		<code>/read/&lt;post&gt;/</code>, a 42-byte transparent image. That's all there is. The CV
+		stamp is in <a href="https://github.com/nahuel11500/my-blog-site/blob/main/worker/cv-stamp.ts">
+			worker/cv-stamp.ts
+		</a>.
 	</p>
 </Layout>

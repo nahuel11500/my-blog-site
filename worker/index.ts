@@ -2,31 +2,39 @@
  * Serves the static site and counts readers server-side, so readers download
  * nothing for it: no script, no cookie, no fingerprint, no consent banner.
  *
- * Two events, both written to the same Analytics Engine dataset:
+ * Three events, all written to the same Analytics Engine dataset:
  *   - view: a browser opened a page.
  *   - read: a browser scrolled near the end of a post. Each post ends with a
  *     lazy 1×1 image pointing at /read/<slug>/, which browsers only fetch when
  *     the reader gets close to it.
+ *   - download: someone downloaded /cv.pdf. Each copy is stamped with the date,
+ *     and with a random reference in its metadata (worker/cv-stamp.ts), the
+ *     same one recorded with the event.
  *
- * Recorded: path, referrer host, country, serving host, event, bot reason.
+ * Recorded: path, referrer host, country, serving host, event, bot reason,
+ * and for a download the reference stamped in that copy's metadata.
  * Read to filter bots, then dropped: user-agent, network (ASN).
  * Never recorded: IP, visitor ID, user-agent, ASN, session, full referring URL.
  *
  * See the "Analytics" section of the README for the data model and why.
  */
 
+import { newRef, stamp, stampPdf } from './cv-stamp.ts';
+
 interface Env {
 	ASSETS: Fetcher;
 	PAGEVIEWS: AnalyticsEngineDataset;
 }
 
-type Event = 'view' | 'read';
+type Event = 'view' | 'read' | 'download';
 type BotReason = 'ua' | 'asn';
 
 const MAX_INDEX_BYTES = 96; // Analytics Engine caps an index at 96 bytes.
 
 /** /read/<post slug>/ — the target of the lazy image at the end of each post. */
 const READ_ROUTE = /^\/read\/([a-z0-9_-]+)\/?$/;
+
+const CV_PATH = '/cv.pdf';
 
 /** A 1×1 transparent GIF (42 bytes). */
 const PIXEL = Uint8Array.from(
@@ -66,6 +74,8 @@ export default {
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
 		const read = url.pathname.match(READ_ROUTE);
+
+		if (url.pathname === CV_PATH) return cv(request, env, url);
 
 		if (read) {
 			try {
@@ -132,7 +142,47 @@ export function botReason(userAgent: string | null, asn: number | undefined): Bo
 	return null;
 }
 
-function record(request: Request, env: Env, url: URL, event: Event, path: string): void {
+/**
+ * Serves the CV stamped with the download time and a fresh reference. Never
+ * cached, so no two downloads share a stamp.
+ */
+async function cv(request: Request, env: Env, url: URL): Promise<Response> {
+	if (request.method !== 'GET' && request.method !== 'HEAD') {
+		return new Response('Method not allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
+	}
+
+	// A plain request: the client's conditional headers must not turn this into a 304.
+	const asset = await env.ASSETS.fetch(new Request(url.toString()));
+	if (!asset.ok) return asset;
+
+	const now = new Date();
+	const headers = {
+		'content-type': 'application/pdf',
+		'content-disposition': `attachment; filename="nahuel_canavy_cv_${now.toISOString().slice(0, 10)}.pdf"`,
+		'cache-control': 'private, no-store',
+		'x-robots-tag': 'noindex, nofollow',
+	};
+	if (request.method === 'HEAD') return new Response(null, { headers });
+
+	const ref = newRef();
+	let pdf: Uint8Array;
+	try {
+		pdf = stampPdf(new Uint8Array(await asset.arrayBuffer()), stamp(now, ref));
+	} catch {
+		// Better no CV than one without its stamp.
+		return new Response('The CV is unavailable right now.', { status: 503 });
+	}
+
+	try {
+		record(request, env, url, 'download', CV_PATH, ref);
+	} catch {
+		// Telemetry must never take the site down.
+	}
+
+	return new Response(pdf, { headers });
+}
+
+function record(request: Request, env: Env, url: URL, event: Event, path: string, ref = ''): void {
 	const page = truncateToBytes(path, MAX_INDEX_BYTES);
 	const bot = botReason(request.headers.get('user-agent'), request.cf?.asn as number | undefined);
 
@@ -141,11 +191,12 @@ function record(request: Request, env: Env, url: URL, event: Event, path: string
 		// so the serving host is recorded to keep them apart at query time.
 		blobs: [
 			page,
-			event === 'view' ? referrerHost(request, url.hostname) : 'n/a',
+			event === 'read' ? 'n/a' : referrerHost(request, url.hostname),
 			String(request.cf?.country ?? 'unknown'),
 			url.hostname,
 			event,
 			bot ?? '',
+			ref,
 		],
 		doubles: [1],
 		indexes: [page],
