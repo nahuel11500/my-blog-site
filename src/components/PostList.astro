@@ -1,0 +1,69 @@
+---
+// A plain list of posts: title and date, then the description.
+import type { Post } from '../lib/posts';
+import FormattedDate from './FormattedDate.astro';
+
+interface Props {
+	posts: Post[];
+	/** Heading level of each post title, to fit the page's outline. */
+	level?: 'h2' | 'h3';
+}
+
+const { posts, level: Title = 'h2' } = Astro.props;
+---
+
+<ul>
+	{
+		posts.map((post) => (
+			<li>
+				<a href={`/blog/${post.id}/`}>
+					<span class="top">
+						<Title class="title">{post.data.title}</Title>
+						<FormattedDate date={post.data.pubDate} />
+					</span>
+					<span class="desc">{post.data.description}</span>
+				</a>
+			</li>
+		))
+	}
+</ul>
+
+<style>
+	ul {
+		display: grid;
+		gap: 1.5rem;
+		margin: 0 0 1.75rem;
+		padding: 0;
+		list-style: none;
+	}
+	a {
+		display: block;
+		text-decoration: none;
+	}
+	.top {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+	.title {
+		font-size: 1rem;
+		line-height: 1.5;
+		transition: color 0.15s;
+	}
+	a:hover .title {
+		color: var(--soft);
+	}
+	.top :global(time) {
+		flex: none;
+		color: var(--muted);
+		font-size: 0.875rem;
+	}
+	.desc {
+		display: block;
+		margin-top: 0.2rem;
+		color: var(--muted);
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+</style>

@@ -1,0 +1,73 @@
+---
+// A project, shaped like a post in the list: name and latest release, then one paragraph and a
+// line of facts. The release is read from GitHub at build time, and left out if GitHub can't be
+// reached.
+import type { Project } from '../lib/projects';
+import { latestRelease } from '../lib/recouvrance';
+
+interface Props {
+	project: Project;
+	level?: 'h2' | 'h3';
+}
+
+const { project: p, level: Title = 'h2' } = Astro.props;
+const release = p.name === 'Recouvrance' ? await latestRelease() : null;
+---
+
+<article>
+	<a href={p.href}>
+		<span class="top">
+			<Title class="title">{p.name}</Title>
+			{release && <span class="tag">{release.tag}</span>}
+		</span>
+		<span class="desc">{p.text}</span>
+	</a>
+	<p class="facts">{p.tags.join(' · ')} · <a href={p.repo}>source</a></p>
+</article>
+
+<style>
+	a {
+		display: block;
+		text-decoration: none;
+	}
+	.top {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+	.title {
+		font-size: 1rem;
+		line-height: 1.5;
+		transition: color 0.15s;
+	}
+	a:hover .title {
+		color: var(--soft);
+	}
+	.tag {
+		flex: none;
+		color: var(--muted);
+		font-size: 0.875rem;
+	}
+	.desc {
+		display: block;
+		margin-top: 0.2rem;
+		color: var(--muted);
+		font-size: 0.875rem;
+		line-height: 1.5;
+	}
+	.facts {
+		margin: 0.35rem 0 0;
+		color: var(--muted);
+		font-size: 0.8rem;
+	}
+	.facts a {
+		display: inline;
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: var(--line);
+	}
+	.facts a:hover {
+		color: var(--strong);
+	}
+</style>

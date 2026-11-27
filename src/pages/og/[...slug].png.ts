@@ -46,54 +46,60 @@ const text = (content: string, style: Record<string, unknown>) => ({
 	props: { style: { display: 'flex', ...style }, children: content },
 });
 
-export const GET: APIRoute<Props> = async ({ props }) => {
+const box = (style: Record<string, unknown>, children: unknown[] = []) => ({
+	type: 'div',
+	props: { style: { display: 'flex', ...style }, children },
+});
+
+// The blog's dark theme (src/styles/global.css).
+const C = {
+	bg: '#000000',
+	title: '#ffffff',
+	soft: '#a3a3a3',
+	muted: '#737373',
+};
+
+export const GET: APIRoute<Props> = async ({ params, props }) => {
 	const { title, description } = props;
+	const slug = params.slug ?? 'default';
+	const section = slug === 'default' ? null : slug.startsWith('recouvrance') ? 'Recouvrance' : 'Writing';
 
 	const svg = await satori(
-		{
-			type: 'div',
-			props: {
-				style: {
-					display: 'flex',
-					flexDirection: 'column',
-					justifyContent: 'space-between',
-					width: '100%',
-					height: '100%',
-					padding: '70px',
-					backgroundColor: '#ffffff',
-					borderLeft: '24px solid #2337ff',
-					fontFamily: 'Atkinson',
-				},
-				children: [
-					{
-						type: 'div',
-						props: {
-							style: { display: 'flex', flexDirection: 'column' },
-							children: [
-								text(title, {
-									fontSize: 64,
-									fontWeight: 700,
-									color: '#0f1219',
-									lineHeight: 1.15,
-									// A long title must not collide with the footer.
-									maxHeight: 300,
-									overflow: 'hidden',
-								}),
-								text(description, {
-									marginTop: 28,
-									fontSize: 30,
-									color: '#6073a0',
-									lineHeight: 1.4,
-									maxHeight: 130,
-									overflow: 'hidden',
-								}),
-							],
-						},
-					},
-					text(DOMAIN, { fontSize: 26, fontWeight: 700, color: '#2337ff' }),
-				],
+		box(
+			{
+				flexDirection: 'column',
+				justifyContent: 'space-between',
+				width: '100%',
+				height: '100%',
+				padding: '64px 72px',
+				backgroundColor: C.bg,
+				fontFamily: 'Atkinson',
 			},
-		},
+			[
+				text(section ? `Nahuel Canavy · ${section}` : 'Nahuel Canavy', { fontSize: 28, color: C.muted }),
+				box({ flexDirection: 'column' }, [
+					text(title, {
+						fontSize: 64,
+						fontWeight: 700,
+						color: C.title,
+						lineHeight: 1.15,
+						letterSpacing: '-0.02em',
+						// A long title must not collide with the footer.
+						maxHeight: 290,
+						overflow: 'hidden',
+					}),
+					text(description, {
+						marginTop: 24,
+						fontSize: 29,
+						color: C.soft,
+						lineHeight: 1.4,
+						maxHeight: 125,
+						overflow: 'hidden',
+					}),
+				]),
+				text(DOMAIN, { fontSize: 26, color: C.muted }),
+			],
+		),
 		{
 			width: WIDTH,
 			height: HEIGHT,

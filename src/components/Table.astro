@@ -38,13 +38,10 @@ const { columns = [], rows = [], striped = false, compact = false } = Astro.prop
 </div>
 
 <style>
+	/* Plain rules between rows; colors from the theme in global.css. */
 	.table-container {
+		margin: 1.75rem 0;
 		overflow-x: auto;
-		border-radius: 0.5rem;
-		border: 1px solid #e5e7eb;
-		box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-		background-color: white;
-		margin: 1rem 0;
 	}
 
 	.custom-table {
@@ -53,112 +50,35 @@ const { columns = [], rows = [], striped = false, compact = false } = Astro.prop
 		font-variant-numeric: tabular-nums;
 	}
 
-	.table-header {
-		background-color: #f9fafb;
-	}
-
 	.table-header-cell {
-		padding: 1rem 1.5rem;
+		padding: 0.5rem 1.25rem 0.5rem 0;
+		border-bottom: 1px solid var(--line);
+		color: var(--muted);
+		font-size: 0.85rem;
+		font-weight: 400;
 		text-align: left;
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: #374151;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		border-bottom: 1px solid #e5e7eb;
-		position: sticky;
-		top: 0;
-		z-index: 10;
-		background-color: #f9fafb;
-	}
-
-	.table-header-cell.compact {
-		padding: 0.5rem 0.75rem;
-	}
-
-	.table-header-cell:first-child {
-		border-top-left-radius: 0.5rem;
-	}
-
-	.table-header-cell:last-child {
-		border-top-right-radius: 0.5rem;
-	}
-
-	.table-body {
-		background-color: white;
-	}
-
-	.table-row {
-		transition: background-color 0.15s ease-in-out;
-		border-bottom: 1px solid #f3f4f6;
-	}
-
-	/* Before :hover — equal specificity, so order decides. */
-	.table-row.striped-row {
-		background-color: #f8fafc;
-	}
-
-	.table-row:hover {
-		background-color: #f9fafb;
-	}
-
-	.table-cell {
-		padding: 1rem 1.5rem;
-		font-size: 0.875rem;
-		color: #111827;
 		white-space: nowrap;
 	}
 
-	.table-cell.compact {
-		padding: 0.5rem 0.75rem;
+	.table-row {
+		border-bottom: 1px solid var(--line);
 	}
 
-	@media (max-width: 640px) {
-		.table-header-cell,
-		.table-cell {
-			padding-left: 1rem;
-			padding-right: 1rem;
-		}
-
-		.table-header-cell.compact,
-		.table-cell.compact {
-			padding-left: 0.5rem;
-			padding-right: 0.5rem;
-		}
+	.table-cell {
+		padding: 0.55rem 1.25rem 0.55rem 0;
+		color: var(--text);
+		font-size: 0.9rem;
+		line-height: 1.5;
+		white-space: nowrap;
 	}
 
-	@media (prefers-color-scheme: dark) {
-		.table-container {
-			background-color: #1f2937;
-			border-color: #374151;
-		}
+	.table-cell:first-child {
+		color: var(--strong);
+		font-family: var(--mono);
+		font-size: 0.82rem;
+	}
 
-		.custom-table,
-		.table-header,
-		.table-body {
-			background-color: #1f2937;
-		}
-
-		.table-header-cell {
-			background-color: #1f2937;
-			color: #d1d5db;
-			border-color: #374151;
-		}
-
-		.table-row {
-			border-color: #374151;
-		}
-
-		.table-row.striped-row {
-			background-color: #2d3748;
-		}
-
-		.table-row:hover {
-			background-color: #374151;
-		}
-
-		.table-cell {
-			color: #f3f4f6;
-		}
+	.compact {
+		padding-block: 0.35rem;
 	}
 </style>

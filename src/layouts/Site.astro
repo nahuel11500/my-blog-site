@@ -1,0 +1,35 @@
+---
+// The shell of every blog page: one narrow column, a "Back" link off the home page, a line of
+// small print, and the theme. No JavaScript.
+import '../styles/global.css';
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+	title: string;
+	description: string;
+	ogImage?: string;
+	/** Where "Back" goes. Home by default; none on the home page. */
+	back?: string;
+}
+
+const home = Astro.url.pathname === '/';
+const { title, description, ogImage, back = home ? undefined : '/' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} ogImage={ogImage} />
+		<meta name="theme-color" content="#000000" />
+		<slot name="head" />
+	</head>
+	<body>
+		<a class="skip" href="#main">Skip to content</a>
+		<main id="main">
+			{back && <a class="back" href={back}>Back</a>}
+			<slot />
+		</main>
+		<Footer />
+	</body>
+</html>

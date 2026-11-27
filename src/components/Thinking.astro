@@ -1,0 +1,170 @@
+---
+// An agent thinking, forever, the way a coding agent shows it: a spinner, a silly verb, the
+// seconds. No JavaScript: every frame and verb is in the HTML, and CSS animations take turns
+// showing them. The seconds count with a registered custom property. Readers who ask for less
+// motion get one still line.
+const glyphs = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
+// Mine, not a coding agent's: Kubernetes, rugby, surfing, and where they meet. Shown in this
+// order, 2.5 s each; add or remove freely, the timing follows the count.
+const verbs = [
+	'Reconciling',
+	'Waxing the board',
+	'Herding pods',
+	'Scrummaging with the scheduler',
+	'Untangling YAML',
+	'Reading the swell',
+	'Kicking the deploy into touch',
+	'Bargaining with the scheduler',
+	'Waiting for the set',
+	'Consulting etcd',
+	'Offloading to another node',
+	'Appeasing the OOM killer',
+	'Duck-diving',
+	'Recycling the ball',
+	'Reading every log line',
+	'Draining nodes (un)politely',
+	'Paddling back out',
+	'Going through the phases',
+	'Asking a human',
+	'Rolling back the rollback',
+	'Checking the tide chart',
+	'Holding the line',
+	'Waiting for leader election',
+	'Waiting for the right wave to deploy',
+	'Blaming DNS',
+	'Kicking for touch',
+	'Cordoning the flaky node',
+	'Paddling out of an incident',
+	'Restarting it and hoping',
+	'Riding the backwash',
+	'Wiping out on a rollout',
+	'Arguing with the ref (politely)',
+	'Negotiating with the PodDisruptionBudget',
+	'Finding who pinned :latest',
+	'Writing the postmortem',
+	'Paging team at 3 a.m.',
+	'Quietly undoing a hotfix',
+	'Spreading pods across zones',
+	'Checking if it\'s DNS (it\'s DNS)',
+];
+// Each verb is shown for 1/n of the cycle. A keyframe stop can't be a variable, so this one
+// rule is written here, with the count in it.
+const turn = `@keyframes verb-turn{0%{visibility:visible}${(100 / verbs.length).toFixed(4)}%,100%{visibility:hidden}}`;
+// U+FE0E asks for the text glyph, never an emoji.
+const text = (g: string) => `${g}︎`;
+---
+
+<p class="thinking">
+	<span class="sr-only">An AI agent, thinking forever.</span>
+	<span class="stack glyph" aria-hidden="true">
+		{glyphs.map((g, i) => <span style={`--i: ${i}`}>{text(g)}</span>)}
+	</span>
+	<span class="stack line" aria-hidden="true" style={`--n: ${verbs.length}`}>
+		{
+			// Each line carries its own clock, so it sits right after its verb. The clocks start
+			// together and read the same.
+			verbs.map((v, i) => (
+				<span style={`--i: ${i}`}>
+					<span class="verb">{v}…</span> (<span class="time" />esc to interrupt)
+				</span>
+			))
+		}
+	</span>
+</p>
+<style is:inline set:html={turn} />
+
+<style>
+	@property --t {
+		syntax: '<integer>';
+		inherits: false;
+		initial-value: 0;
+	}
+	.thinking {
+		display: flex;
+		gap: 1ch;
+		margin: 0;
+		color: var(--muted);
+		font: 0.8rem/1.5 var(--mono);
+	}
+	.glyph {
+		flex: none;
+		width: 1ch;
+		color: var(--soft);
+	}
+	.line {
+		min-width: 0;
+	}
+	.verb {
+		color: var(--soft);
+	}
+
+	/* A stack shows one child at a time, all in the same cell. */
+	.stack {
+		display: inline-grid;
+	}
+	.stack > span {
+		grid-area: 1 / 1;
+	}
+
+	/* Without motion: the first frame and the first verb, no clock. */
+	.stack > span:not(:first-child) {
+		visibility: hidden;
+	}
+	.time {
+		display: none;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.stack > span {
+			visibility: hidden;
+		}
+		/* 10 frames, 0.12 s each. */
+		.glyph > span {
+			animation: one-of-10 1.2s steps(1) infinite;
+			animation-delay: calc(var(--i) * 0.12s);
+		}
+		/* n verbs, 2.5 s each, with a shimmer running across. */
+		.line > span {
+			animation: verb-turn calc(var(--n) * 2.5s) steps(1) infinite;
+			animation-delay: calc(var(--i) * 2.5s);
+		}
+		.verb {
+			background: linear-gradient(90deg, var(--soft) 0 40%, var(--strong) 50%, var(--soft) 60% 100%)
+				0 0 / 250% 100%;
+			-webkit-background-clip: text;
+			background-clip: text;
+			color: transparent;
+			animation: shimmer 2s linear infinite;
+		}
+		.time {
+			display: inline;
+			counter-reset: t var(--t);
+			animation: tick 86400s linear infinite;
+		}
+		.time::after {
+			content: counter(t) 's · ';
+		}
+	}
+	@keyframes one-of-10 {
+		0% {
+			visibility: visible;
+		}
+		10%,
+		100% {
+			visibility: hidden;
+		}
+	}
+	@keyframes shimmer {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0 0;
+		}
+	}
+	@keyframes tick {
+		to {
+			--t: 86400;
+		}
+	}
+</style>

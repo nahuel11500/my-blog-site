@@ -1,77 +1,21 @@
 ---
-import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
-import Header from '../../components/Header.astro';
-
-const projects = [
-	{
-		name: 'Recouvrance',
-		href: '/recouvrance/',
-		repo: 'https://github.com/nahuel11500/recouvrance',
-		logo: '/media/recouvrance/logo.svg',
-		text: 'A fast, native Kubernetes desktop client in Rust, with a local MCP server so AI agents work on your clusters under rules you set.',
-	},
-	{
-		name: 'ekokube',
-		href: 'https://github.com/nahuel11500/ekokube',
-		repo: 'https://github.com/nahuel11500/ekokube',
-		text: 'Kubernetes resource analytics: real CPU and memory usage against requests and limits, waste, and per-tenant chargeback, on ClickHouse. The agent is written in Rust and reads cgroup v2 directly.',
-	},
-];
+import ProjectCard from '../../components/ProjectCard.astro';
+import Site from '../../layouts/Site.astro';
+import { projects } from '../../lib/projects';
 ---
 
-<!doctype html>
-<html lang="en">
-	<head>
-		<BaseHead title="Projects" description="Open source tools I build, mostly for Kubernetes." />
-	</head>
-	<body>
-		<Header />
-		<main>
-			<h1>Projects</h1>
-			<p>Open source tools I build, mostly for running Kubernetes.</p>
-			<ul class="projects">
-				{
-					projects.map((p) => (
-						<li>
-							{p.logo && <img src={p.logo} alt="" width="56" height="56" />}
-							<div>
-								<h2><a href={p.href}>{p.name}</a></h2>
-								<p>{p.text}</p>
-								{p.href !== p.repo && <a class="repo" href={p.repo}>Source on GitHub</a>}
-							</div>
-						</li>
-					))
-				}
-			</ul>
-		</main>
-		<Footer />
-	</body>
-</html>
+<Site title="Projects" description="Open source tools I build, mostly for Kubernetes.">
+	<h1>Projects</h1>
+	<p class="intro">What I build in the open, for running Kubernetes.</p>
+	<div class="list">
+		{projects.map((p) => <ProjectCard project={p} />)}
+	</div>
+</Site>
 
 <style>
-	.projects {
-		list-style: none;
-		padding: 0;
-	}
-	.projects li {
-		display: flex;
-		gap: 1.2em;
-		align-items: flex-start;
-		padding: 1.5em 0;
-		border-bottom: 1px solid rgb(var(--gray-light));
-	}
-	.projects img {
-		flex: none;
-		border-radius: 12px;
-	}
-	.projects h2 {
-		font-size: 1.5em;
-	}
-	.projects p {
-		margin: 0 0 0.5em;
-	}
-	.repo {
-		font-size: 0.85em;
+	.list {
+		display: grid;
+		gap: 1.5rem;
+		margin-top: 2.5rem;
 	}
 </style>
