@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import fontkit from '@pdf-lib/fontkit';
 import {
 	PDFDict,
 	PDFDocument,
@@ -17,6 +15,9 @@ import { cv, parse, type Segment } from '../data/cv';
 // Renders src/data/cv.ts as an A4 PDF, at build time. The Worker stamps each
 // download in place (worker/cv-stamp.ts), so this file only has to leave the
 // placeholder where the stamp goes.
+//
+// Black and white like the site, in Helvetica: a standard PDF font, so nothing
+// is embedded and every reader shows it the same.
 
 const PAGE: [number, number] = [595.28, 841.89];
 const MARGIN = 42;
@@ -27,11 +28,14 @@ const BODY = 9;
 const LEADING = 12;
 const BULLET_INDENT = 12;
 
-const INK = rgb(15 / 255, 18 / 255, 25 / 255);
-const TEXT = rgb(34 / 255, 41 / 255, 57 / 255);
-const GRAY = rgb(96 / 255, 115 / 255, 159 / 255);
-const RULE = rgb(229 / 255, 233 / 255, 240 / 255);
-const ACCENT = rgb(0x23 / 255, 0x37 / 255, 0xff / 255);
+// The site's grays, on paper: black ink where the site is white.
+const gray = (v: number) => rgb(v / 255, v / 255, v / 255);
+const INK = gray(0); // name, titles, links
+const TEXT = gray(0x26); // reading text
+const SOFT = gray(0x52); // section titles
+const MUTED = gray(0x73); // dates, places, small print
+const UNDERLINE = gray(0xa3);
+const RULE = gray(0xe5);
 
 interface Fonts {
 	regular: PDFFont;
@@ -111,8 +115,16 @@ class Writer {
 			for (const word of line) {
 				const shown = word.text.trimEnd();
 				const w = word.font.widthOfTextAtSize(shown, size);
-				this.text(shown, cx, size, word.font, word.href ? ACCENT : color);
-				if (word.href) this.link(word.href, cx, w, size);
+				this.text(shown, cx, size, word.font, word.href ? INK : color);
+				if (word.href) {
+					this.page.drawLine({
+						start: { x: cx, y: this.y - 1.5 },
+						end: { x: cx + w, y: this.y - 1.5 },
+						thickness: 0.4,
+						color: UNDERLINE,
+					});
+					this.link(word.href, cx, w, size);
+				}
 				cx += word.font.widthOfTextAtSize(word.text, size);
 			}
 			this.y -= LEADING;
@@ -121,7 +133,7 @@ class Writer {
 
 	bullet(text: string) {
 		this.keep(LEADING);
-		this.page.drawCircle({ x: MARGIN + 4, y: this.y + 3, size: 1.4, color: GRAY });
+		this.page.drawCircle({ x: MARGIN + 4, y: this.y + 3, size: 1.3, color: MUTED });
 		this.paragraph(parse(text), MARGIN + BULLET_INDENT, WIDTH - BULLET_INDENT);
 		this.y -= 2;
 	}
@@ -129,7 +141,7 @@ class Writer {
 	heading(title: string) {
 		this.keep(18 + 3 * LEADING);
 		this.y -= 8;
-		this.text(title.toUpperCase(), MARGIN, 10.5, this.fonts.bold, ACCENT);
+		this.text(title.toUpperCase(), MARGIN, 9, this.fonts.regular, SOFT);
 		this.y -= 5;
 		this.page.drawLine({
 			start: { x: MARGIN, y: this.y },
@@ -145,28 +157,22 @@ class Writer {
 		this.keep(3 * LEADING);
 		const { bold, regular } = this.fonts;
 		this.text(title, MARGIN, BODY + 1, bold, INK);
-		this.text(period, MARGIN + WIDTH - regular.widthOfTextAtSize(period, BODY), BODY, regular, GRAY);
+		this.text(period, MARGIN + WIDTH - regular.widthOfTextAtSize(period, BODY), BODY, regular, MUTED);
 		this.y -= LEADING;
-		this.text(where, MARGIN, BODY, regular, GRAY);
+		this.text(where, MARGIN, BODY, regular, MUTED);
 		this.y -= LEADING + 1;
 	}
 }
 
 export async function renderCvPdf(): Promise<Uint8Array> {
 	const doc = await PDFDocument.create();
-	doc.registerFontkit(fontkit);
-
-	const [regularBytes, boldBytes] = await Promise.all([
-		readFile('src/fonts/atkinson-regular.woff'),
-		readFile('src/fonts/atkinson-bold.woff'),
-	]);
 	const fonts: Fonts = {
-		regular: await doc.embedFont(regularBytes, { subset: true }),
-		bold: await doc.embedFont(boldBytes, { subset: true }),
+		regular: await doc.embedFont(StandardFonts.Helvetica),
+		bold: await doc.embedFont(StandardFonts.HelveticaBold),
 	};
-	// The stamp is written in a standard font: its text stays plain bytes in the
-	// file, which is what lets the Worker swap it without a PDF library.
-	const stampFont = await doc.embedFont(StandardFonts.Helvetica);
+	// A standard font also keeps the stamp's text as plain bytes in the file,
+	// which is what lets the Worker swap it without a PDF library.
+	const stampFont = fonts.regular;
 
 	doc.setTitle(`${cv.name} – CV`);
 	doc.setAuthor(cv.name);
@@ -191,7 +197,7 @@ export async function renderCvPdf(): Promise<Uint8Array> {
 		MARGIN,
 		WIDTH,
 		BODY - 0.5,
-		GRAY,
+		MUTED,
 	);
 
 	w.heading('Experience');
@@ -226,7 +232,7 @@ export async function renderCvPdf(): Promise<Uint8Array> {
 	w.pages.forEach((page, i) => {
 		page.node.setFontDictionary(stampKey, stampFont.ref);
 		const stamp = doc.context.stream(
-			`q 0.376 0.451 0.624 rg BT /FStamp 7 Tf ${MARGIN} 28 Td (${FOOTER_DEFAULT}) Tj ET Q`,
+			`q 0.451 g BT /FStamp 7 Tf ${MARGIN} 28 Td (${FOOTER_DEFAULT}) Tj ET Q`,
 		);
 		page.node.addContentStream(doc.context.register(stamp));
 		if (w.pages.length > 1) {
@@ -236,7 +242,7 @@ export async function renderCvPdf(): Promise<Uint8Array> {
 				y: 28,
 				size: 7,
 				font: fonts.regular,
-				color: GRAY,
+				color: MUTED,
 			});
 		}
 	});
