@@ -22,7 +22,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.1.1",
     "pdf-lib": "^1.17.1",
-    "satori": "^0.26.0",
+    "satori": "^0.33.5",
     "wrangler": "^4.110.0"
   }
 }
