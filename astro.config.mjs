@@ -1,7 +1,7 @@
 // @ts-check
 
 import mdx from '@astrojs/mdx';
-import { rehypeHeadingIds } from '@astrojs/markdown-remark';
+import { rehypeHeadingIds, unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
 
@@ -40,7 +40,9 @@ export default defineConfig({
 		sitemap({ filter: (page) => !page.endsWith('/cv/') }),
 	],
 	markdown: {
-		rehypePlugins: [rehypeHeadingIds, headingLinks],
+		// The remark/rehype pipeline, kept for the heading links: Astro 7's default
+		// processor (Sätteri) does not run rehype plugins. MDX posts inherit it.
+		processor: unified({ rehypePlugins: [rehypeHeadingIds, headingLinks] }),
 	},
 	// The Recouvrance page moved to its own section.
 	redirects: {
